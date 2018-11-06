@@ -208,13 +208,16 @@ app.get('/', function(req, res) { // set session variable : userID,
 
 
 app.get('/pageChange',function(req,res) {
+	console.log("---------------------");
 	connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)),function(err,result){
 		if (err){
 			console.log(err);
 		}
+		console.log(result[0]);
 		var ret = null
 		if (result[0])
 			ret = result[0].xml;
+		res.send(ret);
 	});
 });
 

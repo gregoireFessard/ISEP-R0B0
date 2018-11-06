@@ -506,14 +506,12 @@
 		toolbox: document.getElementById('toolbox')
 	});
 	var pythonArea = document.getElementById('pythonArea');
-
-
+	var blockEvent = 0;
+	var currentBlock = null;
 	workspace.addChangeListener(mirrorEvent);
-
 	loadXmlToWorkspace(<%- workspacexml %>);
 	loadExerciseList( <%- exerciselist %>);
-
-
+	
 	function loadExerciseList(exerciselist){ // load the exercise from an array and put it in the selector
 		var exerciseSelector = document.querySelector("#exerciselist");
 		for(var i=0;i<exerciselist.length;i++)
@@ -527,24 +525,28 @@
 	}
 	
 	function loadXmlToWorkspace(wholexml){ // load the workspace from an xml code
+		if (wholexml == null)
+			return;
+		blockEvent +=1;
 		Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(wholexml),workspace);
 	}
 	
 	function changeExercise(obj){	//send an xmlhttpreques to the server when the exercise is changed
 		console.log(obj[obj.selectedIndex].value);
 		var test = JSON.stringify({currentExerciseID:obj[obj.selectedIndex].value});
+		blockEvent+=1;
 		workspace.clear();
-
 		var xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
 			   // Typical action to be performed when the document is ready:
 			   console.log(xhttp.responseText);
+			   loadXmlToWorkspace(xhttp.responseText);
 			}
 		};
 		var url = "http://localhost:3000/pageChange/?currentExerciseId="+ obj[obj.selectedIndex].value;
 		xhttp.open("GET",url, true);
-		xhttp.send("LAAAAAAAAAAAAAAAAAAAAAA");
+		xhttp.send();
 	}
 
 	function mirrorEvent(primaryEvent) { // gere les evenements et les envoies en post
@@ -557,7 +559,14 @@
 		if (primaryEvent.type == Blockly.Events.UI) {
 		   return;  // Don't mirror UI events.
 		}
-		console.log("logging");
+		if (primaryEvent.group == currentBlock)
+			return;
+		if (blockEvent != 0)
+		{
+			currentBlock = primaryEvent.group;
+			blockEvent-=1;
+			return;
+		}
 		console.log(primaryEvent);
 		// Convert event to JSON.  This could then be transmitted across the net.
 		var json1 = primaryEvent.toJson();
@@ -579,15 +588,9 @@
 		json1.time= new Date().toISOString().slice(0, 19).replace('T', ' ');
 		json1.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
 		json1.currentExercise = exerciselist[exerciselist.selectedIndex].value;
-		console.log(JSON.stringify(json1));
-		console.log("done");
-		console.log("WORKSPACE :");
-		console.log(json1.workspacexml);
 		if (json1.xml)
 		{
-			console.log("modified xml :");
 			json1.xml = json1.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
-			console.log(json1.xml);
 		}
 		var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance
 		var url = "http://localhost:3000/blocklogging";
