@@ -10,7 +10,6 @@ var index = require('./routes/index');
 
 var app = express();
 
-
 process.on('uncaughtException', UncaughtExceptionHandler);
 
 function UncaughtExceptionHandler(err)
@@ -95,11 +94,80 @@ app.get('/user',function(req,res){
 });
 
 app.get('/', function(req, res) { // set session variable : userID,
-	if (!req.query.sim)
-		res.redirect('/404');
+	simorobj = true;
+	if (req.query.sim)
+		simorobj = req.query.sim;
 	console.log(req.session);
 	console.log("new main page opened");
-	req.session.workspacexml = null;
+	if (!req.session.userID)
+	{
+		var user = [];
+		user.push([simorobj]);
+		
+		connection.query('INSERT INTO userlist (simorobj) VALUES ?',[user],function(err,result0){
+			if (err){
+				console.log(err);
+			}
+			req.session.userID = result0.insertId;
+			req.simorobj = simorobj;
+			connection.query('SELECT * FROM exerciselist',function(err,result1){
+				if (err){
+					console.log(err);
+				}
+				req.exerciselist = result1;
+				req.workspacexml = null;
+				connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
+					if (err){
+						console.log(err);
+					}
+					if (result2[0]){
+						req.workspacexml = result2[0].xml;
+					}
+					res.sendFile(path.join(__dirname+ '/'));
+				});
+			});
+			
+			
+		});
+		
+	}
+	else
+	{
+		connection.query('SELECT simorobj FROM userlist WHERE userid='+mysql.escape(req.session.userID),function(err,result0){
+			if (err){
+				console.log(err);
+			}
+			if (result0[0])
+			{
+				req.simorobj = result0[0].simorobj;
+				connection.query('SELECT * FROM exerciselist',function(err,result1){
+					if (err){
+						console.log(err);
+					}
+					req.exerciselist = result1;
+					req.workspacexml = null;
+					connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
+						if (err){
+							console.log(err);
+						}
+						if (result2[0]){
+							req.workspacexml = result2[0].xml;
+						}
+						res.sendFile(path.join(__dirname+ '/'));
+					});
+				});
+			}
+			else
+			{
+				console.log("ERROR, USER DOES NOT EXIST");
+			}
+			
+			
+		});
+		
+	}
+	
+	/*
 	if (!req.session.userID)
 	{
 		simorobj = req.query.sim;
@@ -132,12 +200,12 @@ app.get('/', function(req, res) { // set session variable : userID,
 			req.session.exerciselist = result;
 			console.log(req.session);
 		});
-		
 	}
 	console.log(req.session);
+	*/
 	
-  res.sendFile(path.join(__dirname+ '/'));
 });
+
 
 app.get('/pageChange',function(req,res) {
 	connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)),function(err,result){

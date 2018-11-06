@@ -4,13 +4,14 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-	
+		
     res.render('index', {
         title: 'ISEP-R0B0 | Code Editor',
         fs: fs,
         userID : JSON.stringify(req.session.userID),
-		exerciselist: JSON.stringify(req.session.exerciselist),
-		workspacexml: JSON.stringify(req.session.workspacexml)
+		exerciselist: JSON.stringify(req.exerciselist),
+		workspacexml: JSON.stringify(req.workspacexml),
+		simorobj: JSON.stringify(req.simorobj)
     });
 });
 
