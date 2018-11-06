@@ -5,6 +5,7 @@
     <link rel='stylesheet' href='/stylesheets/style.css'/>
     <script src="/javascripts/blockly_compressed.js"></script>
     <script src="/javascripts/python_compressed.js"></script>
+	<script src="/javascripts/javascript_compressed.js"></script>
     <script src="/javascripts/blocks_compressed.js"></script>
     <script src="/javascripts/msg/js/en.js"></script>
     
@@ -511,7 +512,7 @@
 	workspace.addChangeListener(mirrorEvent);
 	loadXmlToWorkspace(<%- workspacexml %>);
 	loadExerciseList( <%- exerciselist %>);
-	
+
 	function loadExerciseList(exerciselist){ // load the exercise from an array and put it in the selector
 		var exerciseSelector = document.querySelector("#exerciselist");
 		for(var i=0;i<exerciselist.length;i++)
@@ -567,6 +568,7 @@
 			blockEvent-=1;
 			return;
 		}
+		console.log(Blockly.JavaScript.workspaceToCode(workspace));
 		console.log(primaryEvent);
 		// Convert event to JSON.  This could then be transmitted across the net.
 		var json1 = primaryEvent.toJson();
