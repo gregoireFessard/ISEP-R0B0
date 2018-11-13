@@ -8,10 +8,10 @@ router.get('/', function (req, res, next) {
     res.render('index', {
         title: 'ISEP-R0B0 | Code Editor',
         fs: fs,
-        userID : JSON.stringify(req.session.userID),
-		exerciselist: JSON.stringify(req.exerciselist),
-		workspacexml: JSON.stringify(req.workspacexml),
-		simorobj: JSON.stringify(req.simorobj)
+        userID : JSON.stringify(req.session.userID),	// id of the user
+		exerciselist: JSON.stringify(req.exerciselist), // list of all exercise
+		workspacexml: JSON.stringify(req.workspacexml), // xml to load the workspace from database
+		simorobj: JSON.stringify(req.simorobj)			// simulation or tangible object
     });
 });
 

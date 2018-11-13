@@ -203,24 +203,24 @@
             <field name="ICON">HEART</field>
         </block>
     </category>
-    </xml>
+</xml>
 
 
 <script>
 	var workspace = Blockly.inject('blocklyDiv', {
 		toolbox: document.getElementById('toolbox')
 	});
-	var pythonArea = document.getElementById('pythonArea');
-	var blockEvent = 0;
-	var currentBlock = null;
+	
+	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
+	var currentGroup = null;
 	workspace.addChangeListener(mirrorEvent);
 	loadXmlToWorkspace(<%- workspacexml %>);
 	loadExerciseList( <%- exerciselist %>);
-
-	function loadExerciseList(exerciselist){ // load the exercise from an array and put it in the selector
+	
+	// Load the exercise from an array and put it in the selector
+	function loadExerciseList(exerciselist){ 
 		var exerciseSelector = document.querySelector("#exerciselist");
-		for(var i=0;i<exerciselist.length;i++)
-		{
+		for(var i=0;i<exerciselist.length;i++){
 			var option = document.createElement('option');
 			option.value = exerciselist[i]["exerciseid"];
 			option.text =  exerciselist[i]["title"];
@@ -229,14 +229,16 @@
 	
 	}
 	
-	function loadXmlToWorkspace(wholexml){ // load the workspace from an xml code
+	// Load the workspace from xml code
+	function loadXmlToWorkspace(wholexml){
 		if (wholexml == null)
 			return;
 		blockEvent +=1;
 		Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(wholexml),workspace);
 	}
 	
-	function changeExercise(obj){	//send an xmlhttpreques to the server when the exercise is changed
+	// Send an xmlhttprequest to the server when the exercise is changed
+	function changeExercise(obj){
 		console.log(obj[obj.selectedIndex].value);
 		var test = JSON.stringify({currentExerciseID:obj[obj.selectedIndex].value});
 		blockEvent+=1;
@@ -254,7 +256,9 @@
 		xhttp.send();
 	}
 
-	function mirrorEvent(primaryEvent) { // gere les evenements et les envoies en post
+	// Called for each event on block, and sent to the server to be logged
+	function mirrorEvent(primaryEvent) {
+	    var pythonArea = document.getElementById('pythonArea');
 		pythonArea.value = Blockly.Python.workspaceToCode(workspace);
 		var exerciselist = document.querySelector('#exerciselist');
 		//console.log(pythonArea.value);
@@ -264,14 +268,15 @@
 		if (primaryEvent.type == Blockly.Events.UI) {
 		   return;  // Don't mirror UI events.
 		}
-		if (primaryEvent.group == currentBlock)
+		if (primaryEvent.group == currentGroup)
 			return;
 		if (blockEvent != 0)
 		{
-			currentBlock = primaryEvent.group;
+			currentGroup = primaryEvent.group;
 			blockEvent-=1;
 			return;
 		}
+		currentGroup = null;
 		console.log(Blockly.JavaScript.workspaceToCode(workspace));
 		console.log(primaryEvent);
 		// Convert event to JSON.  This could then be transmitted across the net.
@@ -305,6 +310,7 @@
 		xmlhttp.send(JSON.stringify(json1));
 	}
 	
+	/* // ALL the following code is for the simulation - May not be used
 	var led = [];
 	//showNumber();
 	function showNumber(){
@@ -358,7 +364,7 @@
 		}
 		return array;
 	}
-	
+	*/
 </script>
 </body>
 </html>

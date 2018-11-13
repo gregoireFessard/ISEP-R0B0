@@ -192,7 +192,7 @@ app.post('/blocklogging',function(req,res){
 		console.log("ERROR, CANNOT PROCEED EVENT FOR : ",jsondata);
 	}
 	blockLogValues.push([req.session.userID,jsondata.currentExercise,jsondata.blockId,jsondata.type,jsondata.time]);
-	console.log("adding new blockLog :",blockLogValues);
+	console.log("Logging new blockLog :",blockLogValues);
 	var blocklogID = null;
 	// Logging a new blocklog and getting it's id for the next log
 	connection.query('INSERT INTO blocklog (userid,exerciseid,blockid,logtype,logtime) VALUES ?',[blockLogValues],function(err,result){
@@ -267,7 +267,7 @@ app.post('/blocklogging',function(req,res){
 	});
 	blockValues = [];
 	blockValues.push([req.session.userID,jsondata.currentExercise,jsondata.workspacexml]);
-	console.log("Adding new block :",blockValues);
+	console.log("Logging new block xml :",blockValues);
 	// Logging new block
 	connection.query('REPLACE INTO block (userid,exerciseid,xml) VALUES ?',[blockValues],function(err,result){
 		if (err){
