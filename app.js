@@ -10,15 +10,17 @@ var index = require('./routes/index');
 
 var app = express();
 
+
 process.on('uncaughtException', UncaughtExceptionHandler);
 
-function UncaughtExceptionHandler(err)
-{
+// Prevent the node www from closing when encountering an error
+function UncaughtExceptionHandler(err){
     console.log("Uncaught Exception Encountered!!");
     console.log("err: ", err);
     console.log("Stack trace: ", err.stack);
     setInterval(function(){}, 1000);
 }
+
 // Configure MySQL connection
 var connection = mysql.createConnection({
 	host: 'localhost',
@@ -35,8 +37,7 @@ connection.connect(function(err) {
     // Start the app when connection is ready    
    }
    else {
-	   console.log('Error when trying to connect to MySQL :');
-	console.log(err);
+	   console.log('Error when trying to connect to MySQL :',err);
    // Start the app when connection is ready
  }
 });
@@ -59,6 +60,7 @@ server.listen(port, hostname, () => {
 
 app.use(bodyParser.json())
 
+// Creta session variable
 app.use(session({ secret: 'keyboard cat',
     resave: false,
     saveUninitialized: false ,
@@ -66,56 +68,49 @@ app.use(session({ secret: 'keyboard cat',
   })
 );
 
+// New simulation user
 app.get('/sim',function(req,res){
 	console.log("New user on a simulation !");
 	res.redirect('/?sim=1');
 });
 
+// New Tangible object user
 app.get('/tan',function(req,res){
 	console.log("New user on a tangible object !");
 	res.redirect('/?sim=0');
 });
 
+// Access an older id
 app.get('/user',function(req,res){
-	console.log("recuperating old user");
 	req.session.userID = parseInt(req.query.userid,10);
-	connection.query('SELECT simorobj FROM userlist WHERE userid=' + mysql.escape(req.session.userID),function(err,result){
-		if (err){
-			console.log(err);
-		}
-		console.log("user :");
-		console.log(req.session.userID);
-		console.log("sim :");
-		console.log(result[0].simorobj);
-		req.session.sim = result[0].simorobj;
-		res.redirect('/');
-	});
-	
+	console.log("recuperating old user", req.session.userID);
+	res.redirect('/');
 });
 
-app.get('/', function(req, res) { // set session variable : userID,
+// Set session variable : userID and get liste of exercise and xml
+app.get('/', function(req, res) { // a simplifier?
 	simorobj = true;
-	if (req.query.sim)
-		simorobj = req.query.sim;
-	console.log(req.session);
+	if (req.query.sim) // Set default to simulation
+		simorobj = req.query.sim; 
 	console.log("new main page opened");
-	if (!req.session.userID)
-	{
+	if (!req.session.userID){
 		var user = [];
 		user.push([simorobj]);
-		
+		// Add a new user
 		connection.query('INSERT INTO userlist (simorobj) VALUES ?',[user],function(err,result0){
 			if (err){
 				console.log(err);
 			}
 			req.session.userID = result0.insertId;
 			req.simorobj = simorobj;
+			// Get the list of exercise
 			connection.query('SELECT * FROM exerciselist',function(err,result1){
 				if (err){
 					console.log(err);
 				}
 				req.exerciselist = result1;
 				req.workspacexml = null;
+				// Get the xml for the workspace if it exists
 				connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
 					if (err){
 						console.log(err);
@@ -133,19 +128,21 @@ app.get('/', function(req, res) { // set session variable : userID,
 	}
 	else
 	{
+		// Get the simulation or object variable from the existing userID
 		connection.query('SELECT simorobj FROM userlist WHERE userid='+mysql.escape(req.session.userID),function(err,result0){
 			if (err){
 				console.log(err);
 			}
-			if (result0[0])
-			{
+			if (result0[0]){
 				req.simorobj = result0[0].simorobj;
+				// Get the list of exercise
 				connection.query('SELECT * FROM exerciselist',function(err,result1){
 					if (err){
 						console.log(err);
 					}
 					req.exerciselist = result1;
 					req.workspacexml = null;
+					// Get the xml workspace if it exist
 					connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
 						if (err){
 							console.log(err);
@@ -157,63 +154,21 @@ app.get('/', function(req, res) { // set session variable : userID,
 					});
 				});
 			}
-			else
-			{
-				console.log("ERROR, USER DOES NOT EXIST");
-			}
-			
-			
-		});
-		
-	}
-	
-	/*
-	if (!req.session.userID)
-	{
-		simorobj = req.query.sim;
-		
-		var user =[];
-		user.push([simorobj]);
-		connection.query('INSERT INTO userlist (simorobj) VALUES ?',[user],function(err,result){
-			if (err){
-				console.log(err);
-			}
-			req.session.userID = result.insertId;
-			req.session.sim = simorobj;
-			console.log("1");
-		});
-	}
-	else
-	{ 
-		connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result){
-			if (result[0]){
-				req.session.workspacexml = result[0].xml;
+			else{
+				res.redirect('/404');
 			}
 		});
 	}
-	if (!req.session.exerciselist)
-	{
-		connection.query('SELECT * FROM exerciselist',function(err,result){
-			if (err){
-				console.log(err);
-			}
-			req.session.exerciselist = result;
-			console.log(req.session);
-		});
-	}
-	console.log(req.session);
-	*/
-	
 });
 
-
+// Called when changing exercise page
 app.get('/pageChange',function(req,res) {
-	console.log("---------------------");
+	// Get the xml code for the workspace of the next page
 	connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)),function(err,result){
 		if (err){
 			console.log(err);
 		}
-		console.log(result[0]);
+		console.log("new xml for workspace :",result[0]);
 		var ret = null
 		if (result[0])
 			ret = result[0].xml;
@@ -221,129 +176,104 @@ app.get('/pageChange',function(req,res) {
 	});
 });
 
+// Called for a block event
 app.post('/blocklogging',function(req,res){
-	console.log("-----New block event-------");
     var jsondata = req.body;
 	var values = [];
 	var id;
 	var type;
 	blockLogValues = [];
-	console.log("logging blocklog");
-	console.log(jsondata);
-	console.log(jsondata.type);
-	console.log(jsondata.newParentId);
-	if (jsondata.newParentId)
-	{
+	// Change a move with a newParentId to a combine
+	if (jsondata.newParentId){ // a simplifier
 		console.log("combination");
 		jsondata.type = "combine";
 	}
-	else if (!jsondata.newCoordinate && jsondata.type == 'move')
-	{
-		console.log("ERROR, CANNOT PROCEED EVENT FOR : ");
-		console.log(jsondata);
+	else if (!jsondata.newCoordinate && jsondata.type == 'move'){ // can be removed?
+		console.log("ERROR, CANNOT PROCEED EVENT FOR : ",jsondata);
 	}
 	blockLogValues.push([req.session.userID,jsondata.currentExercise,jsondata.blockId,jsondata.type,jsondata.time]);
-	console.log("adding :");
-	console.log(blockLogValues);
+	console.log("adding new blockLog :",blockLogValues);
 	var blocklogID = null;
+	// Logging a new blocklog and getting it's id for the next log
 	connection.query('INSERT INTO blocklog (userid,exerciseid,blockid,logtype,logtime) VALUES ?',[blockLogValues],function(err,result){
 		if (err){
 			console.log(err);
 		}
-		console.log("blocklog added, id:");
-		//console.log(result);
-		console.log(result.insertId);
 		blocklogID = result.insertId;
 		switch(jsondata.type){
 			case 'create':
-				console.log("logging blockcreate");
 				values.push([blocklogID,jsondata.xml]);
-				console.log("adding :");
-				console.log(values);
+				console.log("Logging new blockcreate :",values);
+				// Logging a new blocreate
 				connection.query('INSERT INTO blockcreate (createid,xml) VALUES ?',[values],function(err,result){
 					if (err){
 						console.log(err);
 					}
-					console.log("blockcreate logged");
 				});
 				break;
 				
 			case 'move':
-				console.log("logging blockmove");
 				values.push([blocklogID,jsondata.newCoordinate]);
-				console.log("adding :");
-				console.log(values);
+				console.log("Logging new blockmove :",values);	
+				// Logging new blockmove
 				connection.query('INSERT INTO blockmove (moveid,newcoordinate) VALUES ?',[values],function(err,result){
 					if (err){
 						console.log(err);
 					}
-					console.log("blockmove logged");
 				});
 				break;
 				
 			case 'combine':
-				console.log("logging blockcombine");
-				if (jsondata.newInputName)
-				{
+				if (jsondata.newInputName){ // a simplifier
 					values.push([blocklogID,jsondata.newParentId,jsondata.newInputName]);
 				}
-				else
-				{
+				else{
 					values.push([blocklogID,jsondata.newParentId,null]);
 				}
-				console.log("adding :");
-				console.log(values);
+				console.log("Logging new blockcombine :",values);
+				//logging new blockcomine
 				connection.query('INSERT INTO blockcombine (combineid,newparentid,newinputname) VALUES ?',[values],function(err,result){
 					if (err){
 						console.log(err);
 					}
-					console.log("blockmove logged");
 				});
 				break;
 				
 			case 'delete':
-				console.log("logging blockdelete");
 				values.push([blocklogID,JSON.stringify(jsondata.ids)]);
-				console.log("adding :");
-				console.log(values);			
+				console.log("Logging new blockdelete :",values);
+				// Logging new blockdelete
 				connection.query('INSERT INTO blockdelete (deleteid,delids) VALUES ?',[values],function(err,result){
 					if (err){
 						console.log(err);
 					}
-					console.log("blockdelete logged");
 				});					
 				break;
 				
 			case 'change':
-				console.log("logging blockchange");
 				values.push([blocklogID,jsondata.name,jsondata.newValue]);
-				console.log("adding :");
-				console.log(values);
+				console.log("Logging new blockchange :",values);
+				// Logging new blockchange
 				connection.query('INSERT INTO blockchange (changeid,vartype,var) VALUES ?',[values],function(err,result){
 					if (err){
 						console.log(err);
 					}
-					console.log("blockchange logged");
 				});					
 				break;
 				
 			default:
-				console.log("ERROR, type of event not recognized :");
-				console.log(jsondata.type);
-		}
-		console.log("---block event logged----");	
+				console.log("ERROR, type of event not recognized :",jsondata.type);
+		}	
 	});
 	blockValues = [];
-	console.log("--------logging xml-------");
 	blockValues.push([req.session.userID,jsondata.currentExercise,jsondata.workspacexml]);
+	console.log("Adding new block :",blockValues);
+	// Logging new block
 	connection.query('REPLACE INTO block (userid,exerciseid,xml) VALUES ?',[blockValues],function(err,result){
 		if (err){
 			console.log(err);
 		}
-		console.log("block added");
-		console.log("-------xml done-------");
 	});
-	console.log("-----------------Done logging------------");
     res.end('end');
 });
 
