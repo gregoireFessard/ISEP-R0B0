@@ -51,8 +51,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "message0": "%{BKY_CONTROLS_REPEAT_TITLE}",
     "args0": [{
       "type": "input_value",
-      "name": "TIMES",
-      "check": "Number"
+      "name": "TIMES"
     }],
     "message1": "%{BKY_CONTROLS_REPEAT_INPUT_DO} %1",
     "args1": [{
@@ -118,6 +117,29 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "helpUrl": "%{BKY_CONTROLS_WHILEUNTIL_HELPURL}",
     "extensions": ["controls_whileUntil_tooltip"]
   },
+  //custome while loop.
+	{
+	  "type": "controls_while",
+	  "message0": "while %1 %2 %3",
+	  "args0": [
+		{
+		  "type": "input_dummy"
+		},
+		{
+		  "type": "input_value",
+		  "name": "BOOL",
+		  "check": "Boolean"
+		},
+		{
+		  "type": "input_statement",
+		  "name": "DO"
+		}
+	  ],
+	  "inputsInline": false,
+	  "colour": 105,
+	  "tooltip": "",
+	  "helpUrl": ""
+	}
   // Block for 'for' loop.
   {
     "type": "controls_for",
@@ -301,8 +323,7 @@ Blockly.Constants.Loops.CONTROL_FLOW_CHECK_IN_LOOP_MIXIN = {
    * Blockly.Blocks['controls_flow_statements'].LOOP_TYPES.push('custom_loop');
    */
   LOOP_TYPES: ['controls_repeat', 'controls_repeat_ext', 'controls_forEach',
-    'controls_for', 'controls_whileUntil'],
-
+    'controls_for', 'controls_whileUntil','controls_while'],
   /**
    * Called whenever anything on the workspace changes.
    * Add warning if this flow block is not nested inside a loop.

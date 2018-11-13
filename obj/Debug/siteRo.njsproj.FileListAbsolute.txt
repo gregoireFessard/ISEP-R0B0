@@ -1,3 +1,6 @@
 C:\Users\greg\Downloads\ISEP-R0B0-development\ISEP-R0B0-development\obj\Debug\siteRo.njsprojAssemblyReference.cache
 C:\Users\greg\Downloads\ISEP-R0B0-development\ISEP-R0B0-development\obj\Debug\siteRo.njsproj.CoreCompileInputs.cache
 C:\Users\greg\Downloads\ISEP-R0B0-development\ISEP-R0B0-development\bin\Microsoft.NodejsTools.WebRole.dll
+F:\Site- R0b0\ISEP-R0B0-development\obj\Debug\siteRo.njsprojAssemblyReference.cache
+F:\Site- R0b0\ISEP-R0B0-development\obj\Debug\siteRo.njsproj.CoreCompileInputs.cache
+F:\Site- R0b0\ISEP-R0B0-development\bin\Microsoft.NodejsTools.WebRole.dll

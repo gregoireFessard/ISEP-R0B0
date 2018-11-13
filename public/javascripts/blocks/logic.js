@@ -94,7 +94,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "type": "controls_ifelse",
     "message0": "%{BKY_CONTROLS_IF_MSG_IF} %1",
     "args0": [
-      {
+      {	
         "type": "input_value",
         "name": "IF0",
         "check": "Boolean"
