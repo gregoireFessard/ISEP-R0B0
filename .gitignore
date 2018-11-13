@@ -508,3 +508,5 @@ ASALocalRun/
 .localhistory/
 
 # End of https://www.gitignore.io/api/node,espresso,webstorm,visualstudio,visualstudiocode
+/siteRo.njsproj
+/siter0b0.njsproj
