@@ -50,7 +50,7 @@ const port = 3000;
 const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World\n');
+  res.end('error, ligne 53');
 });
 
 server.listen(port, hostname, () => {
@@ -88,7 +88,7 @@ app.get('/user',function(req,res){
 });
 
 // Set session variable : userID and get liste of exercise and xml
-app.get('/', function(req, res) { // a simplifier?
+app.get('/', function(req, res){ // a simplifier?
 	simorobj = true;
 	if (req.query.sim) // Set default to simulation
 		simorobj = req.query.sim; 
@@ -121,10 +121,7 @@ app.get('/', function(req, res) { // a simplifier?
 					res.sendFile(path.join(__dirname+ '/'));
 				});
 			});
-			
-			
 		});
-		
 	}
 	else
 	{
@@ -161,8 +158,9 @@ app.get('/', function(req, res) { // a simplifier?
 	}
 });
 
+
 // Called when changing exercise page
-app.get('/pageChange',function(req,res) {
+app.get('/pageChange',function(req,res){
 	// Get the xml code for the workspace of the next page
 	connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)),function(err,result){
 		if (err){

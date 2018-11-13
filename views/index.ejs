@@ -18,12 +18,13 @@
     <textarea id="pythonArea" disabled></textarea>
 </div>
 
-<form action="" method="post">
+<form action="/dl" method="post">
     <input type="hidden" id="hiddenPythonCode" name="pythonCode" value=""/>
     <input type="hidden" id="hiddenWorkspace" name="workspace" value=""/>
     <input type="hidden" id="hiddenTextArea" name="textArea" value=""/>
     <input type="submit" value="Télécharger le code Python">
 </form>
+<button onclick="startDownload()"> click me maybe </button>
 <xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">
     <category name="Logic" colour="#5C81A6">
 		<block type="logic_boolean"></block>
@@ -265,6 +266,7 @@
 		var code= pythonArea.value;
 		document.getElementById('hiddenPythonCode').value = Blockly.Python.workspaceToCode(workspace);
 		document.getElementById('hiddenWorkspace').value = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+		console.log(Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));
 		if (primaryEvent.type == Blockly.Events.UI) {
 		   return;  // Don't mirror UI events.
 		}
@@ -309,6 +311,21 @@
 		xmlhttp.setRequestHeader("Content-Type", "application/json");
 		xmlhttp.send(JSON.stringify(json1));
 	}
+	
+	const download = function(data){
+		const blob = new Blob([data],{type:'application/octer-stream'});
+		const url = window.URL.createObjectURL(blob);
+		const a= document.createElement('a');
+		a.setAttribute('hidden','');
+		a.setAttribute('href',url);
+		a.setAttribute('download','download.hex');
+		a.click();
+	};
+	
+	const startDownload = async function(){
+		const data = JSON.stringify("test");
+		download(data);
+	};
 	
 	/* // ALL the following code is for the simulation - May not be used
 	var led = [];
