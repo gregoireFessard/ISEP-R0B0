@@ -18,13 +18,7 @@
     <textarea id="pythonArea" disabled></textarea>
 </div>
 
-<form action="/dl" method="post">
-    <input type="hidden" id="hiddenPythonCode" name="pythonCode" value=""/>
-    <input type="hidden" id="hiddenWorkspace" name="workspace" value=""/>
-    <input type="hidden" id="hiddenTextArea" name="textArea" value=""/>
-    <input type="submit" value="Télécharger le code Python">
-</form>
-<button onclick="startDownload()"> click me maybe </button>
+<button onclick="startDownload()"> click me</button>
 <xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">
     <category name="Logic" colour="#5C81A6">
 		<block type="logic_boolean"></block>
@@ -264,9 +258,9 @@
 		var exerciselist = document.querySelector('#exerciselist');
 		//console.log(pythonArea.value);
 		var code= pythonArea.value;
-		document.getElementById('hiddenPythonCode').value = Blockly.Python.workspaceToCode(workspace);
-		document.getElementById('hiddenWorkspace').value = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-		console.log(Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));
+		//document.getElementById('hiddenPythonCode').value = Blockly.Python.workspaceToCode(workspace);
+		//document.getElementById('hiddenWorkspace').value = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+		console.log(primaryEvent);
 		if (primaryEvent.type == Blockly.Events.UI) {
 		   return;  // Don't mirror UI events.
 		}
@@ -279,8 +273,6 @@
 			return;
 		}
 		currentGroup = null;
-		console.log(Blockly.JavaScript.workspaceToCode(workspace));
-		console.log(primaryEvent);
 		// Convert event to JSON.  This could then be transmitted across the net.
 		var json1 = primaryEvent.toJson();
 		var timeStamp = Math.floor(Date.now() / 1000);
