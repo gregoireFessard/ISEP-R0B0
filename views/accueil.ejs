@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title> <%= title %> </title>
+	</head>
+	<body>
+		<form action="/newUser" method="post">
+			Prénom : <input type="text" name="fname" id="fname"/> <br>
+			Nom : <input type="text" name="lname" id="lname"/> <br>
+			<input type="hidden" name="simorobj" value=<%= simulation %> id="simorobj"/>
+			<input type="submit" value="Commencer"/>
+		</form>	
+	</body>
+</html>

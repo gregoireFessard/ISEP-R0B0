@@ -297,6 +297,8 @@
 		{
 			json1.xml = json1.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
 		}
+		console.log(json1);
+		console.log(typeof json1);
 		var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance
 		var url = "http://localhost:3000/blocklogging";
 		xmlhttp.open("POST", url,true);

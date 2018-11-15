@@ -15,4 +15,12 @@ router.get('/', function (req, res, next) {
     });
 });
 
+router.get('/accueil',function(req,res,next){
+	console.log(req.session.simulation);
+	res.render('accueil',{
+		title: 'ISEP-R0B0 | Accueil',
+		simulation : JSON.stringify(req.session.simulation)		
+	});	
+});
+
 module.exports = router;

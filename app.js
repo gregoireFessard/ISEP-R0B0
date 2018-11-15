@@ -51,8 +51,8 @@ app.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
 
-
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: true}))
+app.use(bodyParser.json());
 
 // Creta session variable
 app.use(session({ secret: 'keyboard cat',
@@ -65,13 +65,20 @@ app.use(session({ secret: 'keyboard cat',
 // New simulation user
 app.get('/sim',function(req,res){
 	console.log("New user on a simulation !");
-	res.redirect('/?sim=1');
+	req.session.simulation = true;
+	res.redirect('../accueil');
 });
 
 // New Tangible object user
 app.get('/tan',function(req,res){
 	console.log("New user on a tangible object !");
-	res.redirect('/?sim=0');
+	req.session.simulation = false;
+	res.redirect('../accueil');
+});
+
+app.get('/accueil',function(req,res){
+	console.log("next");
+	res.sendFile(path.join(__dirname+ '/'));
 });
 
 // Access an older id
@@ -79,6 +86,14 @@ app.get('/user',function(req,res){
 	req.session.userID = parseInt(req.query.userid,10);
 	console.log("recuperating old user", req.session.userID);
 	res.redirect('/');
+});
+
+app.post('/newUser',function(req,res){
+	console.log(req.body);
+	console.log(req.body.fname);
+	req.session.fname = req.body.fname;
+	req.session.lname = req.body.lname;
+	res.redirect('/?simorobj='+req.body.simorobj);
 });
 
 // Set session variable : userID and get liste of exercise and xml
@@ -89,9 +104,9 @@ app.get('/', function(req, res){ // a simplifier?
 	console.log("new main page opened");
 	if (!req.session.userID){
 		var user = [];
-		user.push([simorobj]);
+		user.push([simorobj,req.session.fname,req.session.lname]);
 		// Add a new user
-		connection.query('INSERT INTO userlist (simorobj) VALUES ?',[user],function(err,result0){
+		connection.query('INSERT INTO userlist (simorobj,fname,lname) VALUES ?',[user],function(err,result0){
 			if (err){
 				console.log(err);
 			}
@@ -117,8 +132,7 @@ app.get('/', function(req, res){ // a simplifier?
 			});
 		});
 	}
-	else
-	{
+	else if (req.session.userID){
 		// Get the simulation or object variable from the existing userID
 		connection.query('SELECT simorobj FROM userlist WHERE userid='+mysql.escape(req.session.userID),function(err,result0){
 			if (err){
@@ -150,6 +164,9 @@ app.get('/', function(req, res){ // a simplifier?
 			}
 		});
 	}
+	else{
+		res.redirect('/404');
+	}
 });
 
 
@@ -171,6 +188,8 @@ app.get('/pageChange',function(req,res){
 // Called for a block event
 app.post('/blocklogging',function(req,res){
     var jsondata = req.body;
+	console.log(jsondata);
+	return;
 	var values = [];
 	var id;
 	var type;
@@ -282,6 +301,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
+app.use('/accueil',index);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
