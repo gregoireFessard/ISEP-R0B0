@@ -209,7 +209,6 @@
 	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
 	var currentGroup = null;
 	var hexFileHeader = <%- hexFileHeader %>;
-	console.log(hexFileHeader);
 	
 	workspace.addChangeListener(mirrorEvent);
 	loadXmlToWorkspace(<%- workspacexml %>);
@@ -307,6 +306,7 @@
 		xmlhttp.open("POST", url,true);
 		xmlhttp.setRequestHeader("Content-Type", "application/json");
 		xmlhttp.send(JSON.stringify(json1));
+		pythonToHex();
 	}
 	
 	const download = function(data){
@@ -321,10 +321,79 @@
 	
 	const startDownload = async function(){
 		
-		const data = hexFileHeader + '\\n' + JSON.stringify("test");
+		var data = hexFileHeader.substr(0,hexFileHeader.length-31) + pythonToHex() + hexFileHeader.substr(-31);
 		download(data);
 	};
 	
+	function pythonToHex(){
+		var pythonCode = Blockly.Python.workspaceToCode(workspace);
+		//var pythonCode = "from microbit import *\nwhile True:\n\tdisplay.set_pixel(0,0,9)\n\tdisplay.set_pixel(0,2,9)\n\tdisplay.set_pixel(0,4,9)\n\tdisplay.set_pixel(1,0,9)\n\tdisplay.set_pixel(1,1,9)\n\tdisplay.set_pixel(1,2,9)\n\tdisplay.set_pixel(1,3,9)\n\tdisplay.set_pixel(1,4,9)";
+		var pth = pythonCode.length;
+		dataLength = 4 + pythonCode.length + (16 - (4 + pythonCode.length) % 16);
+		var data = [];
+        data[0] = 77;
+        data[1] = 80;
+        data[2] = unsignedToSignedBit(pythonCode.length & 0xFF);
+        data[3] = unsignedToSignedBit((pythonCode.length >> 8) & 0xff);
+        for (var i = 0; i < pythonCode.length; ++i) {
+            data[4+i] = unsignedToSignedBit((pythonCode.charCodeAt(i) & 0xFF));
+        }
+        if (dataLength > 8192) {
+            throw new Exception("Script is too long");
+        }
+        var addr = 0x3e000;
+        var chunk = [];
+
+        var stringBuilder = [];
+        stringBuilder.push(":020000040003F7","\n");
+        for (var i = 0; i < dataLength; i += 16) {
+			chunk = [];
+            chunk[0] = 16;
+            chunk[1] = unsignedToSignedBit((addr >> 8) & 0xFF);
+            chunk[2] = unsignedToSignedBit(addr & 0xFF);
+            chunk[3] = 0;
+            for (var j = 0; j < 16; j++) {
+                chunk[4 + j] = unsignedToSignedBit(data[i + j] | 0);
+            }
+            var checksum = 0x0;
+            for (var j = 0; j < 4 + 16; j++) {
+                checksum += unsignedToSignedBit(chunk[j] & 0xFF);
+            }
+			
+            chunk[20] = (-checksum & 0xFF);
+			console.log(chunk);
+            stringBuilder.push(':',toHexString(chunk).toUpperCase(),"\n");
+            addr += 16;
+        }
+        return stringBuilder.join('');
+	}
+	
+	function toHexString(byteArray){
+		var ret = "";
+		for (var i=0;i<byteArray.length;i++){
+			a = byteArray[i];
+			if (a<0)
+			{
+				a+=256;
+			}
+			if (a < 16)
+			{
+				ret += "0"+a.toString(16);
+			}
+			else
+			{	
+				ret += a.toString(16);
+			}	
+		}
+		return ret;
+	}
+	
+	function unsignedToSignedBit(i){
+		if (i > 128) {
+		   i = i-256;
+		}
+		return i;
+	}
 	
 	
 	/* // ALL the following code is for the simulation - May not be used
