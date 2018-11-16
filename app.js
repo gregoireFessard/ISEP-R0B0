@@ -7,6 +7,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mysql = require ('mysql');
 var index = require('./routes/index');
+var fs = require('fs');
 
 var app = express();
 
@@ -28,7 +29,7 @@ var connection = mysql.createConnection({
 	password: '',
 	//database: 'sampledb'
 	database: 'isepr0b0'
-  });
+});
 
 //Establish MySQL connection
 connection.connect(function(err) {
@@ -100,46 +101,25 @@ app.post('/newUser',function(req,res){
 app.get('/', function(req, res){ // a simplifier?
 	simorobj = true;
 	if (req.query.sim) // Set default to simulation
-		simorobj = req.query.sim; 
-	console.log("new main page opened");
-	if (!req.session.userID){
-		var user = [];
-		user.push([simorobj,req.session.fname,req.session.lname]);
-		// Add a new user
-		connection.query('INSERT INTO userlist (simorobj,fname,lname) VALUES ?',[user],function(err,result0){
-			if (err){
-				console.log(err);
-			}
-			req.session.userID = result0.insertId;
-			req.simorobj = simorobj;
-			// Get the list of exercise
-			connection.query('SELECT * FROM exerciselist',function(err,result1){
+		simorobj = req.query.sim;
+		
+		
+	fs.readFile('./public/runtime.txt','ascii',function read(err,data){
+		if (err){
+			throw err;
+		}
+		req.hexFileHeader = data;	
+		console.log("new main page opened");
+		if (!req.session.userID){
+			var user = [];
+			user.push([simorobj,req.session.fname,req.session.lname]);
+			// Add a new user
+			connection.query('INSERT INTO userlist (simorobj,fname,lname) VALUES ?',[user],function(err,result0){
 				if (err){
 					console.log(err);
 				}
-				req.exerciselist = result1;
-				req.workspacexml = null;
-				// Get the xml for the workspace if it exists
-				connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
-					if (err){
-						console.log(err);
-					}
-					if (result2[0]){
-						req.workspacexml = result2[0].xml;
-					}
-					res.sendFile(path.join(__dirname+ '/'));
-				});
-			});
-		});
-	}
-	else if (req.session.userID){
-		// Get the simulation or object variable from the existing userID
-		connection.query('SELECT simorobj FROM userlist WHERE userid='+mysql.escape(req.session.userID),function(err,result0){
-			if (err){
-				console.log(err);
-			}
-			if (result0[0]){
-				req.simorobj = result0[0].simorobj;
+				req.session.userID = result0.insertId;
+				req.simorobj = simorobj;
 				// Get the list of exercise
 				connection.query('SELECT * FROM exerciselist',function(err,result1){
 					if (err){
@@ -147,7 +127,7 @@ app.get('/', function(req, res){ // a simplifier?
 					}
 					req.exerciselist = result1;
 					req.workspacexml = null;
-					// Get the xml workspace if it exist
+					// Get the xml for the workspace if it exists
 					connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
 						if (err){
 							console.log(err);
@@ -158,15 +138,44 @@ app.get('/', function(req, res){ // a simplifier?
 						res.sendFile(path.join(__dirname+ '/'));
 					});
 				});
-			}
-			else{
-				res.redirect('/404');
-			}
-		});
-	}
-	else{
-		res.redirect('/404');
-	}
+			});
+		}
+		else if (req.session.userID){
+			// Get the simulation or object variable from the existing userID
+			connection.query('SELECT simorobj FROM userlist WHERE userid='+mysql.escape(req.session.userID),function(err,result0){
+				if (err){
+					console.log(err);
+				}
+				if (result0[0]){
+					req.simorobj = result0[0].simorobj;
+					// Get the list of exercise
+					connection.query('SELECT * FROM exerciselist',function(err,result1){
+						if (err){
+							console.log(err);
+						}
+						req.exerciselist = result1;
+						req.workspacexml = null;
+						// Get the xml workspace if it exist
+						connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
+							if (err){
+								console.log(err);
+							}
+							if (result2[0]){
+								req.workspacexml = result2[0].xml;
+							}
+							res.sendFile(path.join(__dirname+ '/'));
+						});
+					});
+				}
+				else{
+					res.redirect('/404');
+				}
+			});
+		}
+		else{
+			res.redirect('/404');
+		}
+	});
 });
 
 

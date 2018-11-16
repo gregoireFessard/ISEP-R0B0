@@ -208,6 +208,9 @@
 	
 	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
 	var currentGroup = null;
+	var hexFileHeader = <%- hexFileHeader %>;
+	console.log(hexFileHeader);
+	
 	workspace.addChangeListener(mirrorEvent);
 	loadXmlToWorkspace(<%- workspacexml %>);
 	loadExerciseList( <%- exerciselist %>);
@@ -317,9 +320,12 @@
 	};
 	
 	const startDownload = async function(){
-		const data = JSON.stringify("test");
+		
+		const data = hexFileHeader + '\\n' + JSON.stringify("test");
 		download(data);
 	};
+	
+	
 	
 	/* // ALL the following code is for the simulation - May not be used
 	var led = [];
