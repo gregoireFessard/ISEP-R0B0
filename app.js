@@ -198,7 +198,6 @@ app.get('/pageChange',function(req,res){
 app.post('/blocklogging',function(req,res){
     var jsondata = req.body;
 	console.log(jsondata);
-	return;
 	var values = [];
 	var id;
 	var type;
