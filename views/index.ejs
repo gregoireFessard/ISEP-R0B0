@@ -206,6 +206,8 @@
 		toolbox: document.getElementById('toolbox')
 	});
 	
+	Blockly.ContextMenu= false; // provoque une erreur dans la console pour chaques cliq droit, ignorer?
+	
 	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
 	var currentGroup = null;
 	var hexFileHeader = <%- hexFileHeader %>;
@@ -255,145 +257,144 @@
 
 	// Called for each event on block, and sent to the server to be logged
 	function mirrorEvent(primaryEvent) {
-	    var pythonArea = document.getElementById('pythonArea');
-		pythonArea.value = Blockly.Python.workspaceToCode(workspace);
-		var exerciselist = document.querySelector('#exerciselist');
-		//console.log(pythonArea.value);
-		var code= pythonArea.value;
-		//document.getElementById('hiddenPythonCode').value = Blockly.Python.workspaceToCode(workspace);
-		//document.getElementById('hiddenWorkspace').value = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-		console.log(primaryEvent);
-		if (primaryEvent.type == Blockly.Events.UI) {
-		   return;  // Don't mirror UI events.
+		var url;
+		var json;
+		json = primaryEvent.toJson();
+		switch(primaryEvent.type){ // remove useless case?
+			case "ui":
+				console.log("ui");
+				break;
+			case "create":
+				console.log("create");
+				break;
+			case "move":
+				if (primaryEvent.newParentId != null){
+					json.type = "combine";
+					json.newInputName = (json.newInputName || null);			
+				}
+				console.log("move");
+				break;
+			case "change":
+				
+				console.log("change");
+				break;
+			case "delete":
+				console.log("delete");
+				break;
+			case "var_create":
+				console.log("var_create");
+				break;
+			case "var_delete":
+				console.log("var_delete");
+				break;
+			case "var_rename":
+				console.log("var_rename");
+				break;
+			default:
+				console.log("ERROR : UNKNOW EVENT ", primaryEvent.type);
+				break;
 		}
-		if (primaryEvent.group == currentGroup)
-			return;
-		if (blockEvent != 0)
-		{
-			currentGroup = primaryEvent.group;
-			blockEvent-=1;
-			return;
-		}
-		currentGroup = null;
-		// Convert event to JSON.  This could then be transmitted across the net.
-		var json1 = primaryEvent.toJson();
-		var timeStamp = Math.floor(Date.now() / 1000);
-		if (json1.type == 'create') // inutile??
-		{
-			var spl = eval(json1);
-			spl = spl.xml;
-
-			spl = spl.split('type');
-			spl = spl[1];
-			spl = spl.split('"');
-			var block= spl[1];
-			json1.block= block;
-		}
-
-		// Convert JSON back into an event, then execute it.
-		json1.pycode=code;
-		json1.time= new Date().toISOString().slice(0, 19).replace('T', ' ');
-		json1.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-		json1.currentExercise = exerciselist[exerciselist.selectedIndex].value;
-		if (json1.xml)
-		{
-			json1.xml = json1.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
-		}
-		console.log(json1);
-		console.log(typeof json1);
-		var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance
-		var url = "http://localhost:3000/blocklogging";
-		xmlhttp.open("POST", url,true);
-		xmlhttp.setRequestHeader("Content-Type", "application/json");
-		xmlhttp.send(JSON.stringify(json1));
-		pythonToHex();
+		
+		json.user = <%- userID %> ;
+		json.currentExerciseID = exerciselist[exerciselist.selectedIndex].value; //exerciselist work but i don't know why? need to redefine it?
+		json.time= new Date().toISOString().slice(0, 19).replace('T',' ');
+		console.log(json);
+		
+		postrequest("http://localhost:3000/blocklogging",json);
 	}
 	
-	const download = function(data){
-		const blob = new Blob([data],{type:'application/octer-stream'});
-		const url = window.URL.createObjectURL(blob);
-		const a= document.createElement('a');
-		a.setAttribute('hidden','');
-		a.setAttribute('href',url);
-		a.setAttribute('download','download.hex');
-		a.click();
-	};
+	const postrequest = async function(url,content){
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.open("POST",url,true);
+		xmlhttp.setRequestHeader("Content-Type","application/json");
+		xmlhttp.send(JSON.stringify(content));	
+	}
 	
+	
+	// download python code as hex file
 	const startDownload = async function(){
 		
 		var data = hexFileHeader.substr(0,hexFileHeader.length-31) + pythonToHex() + hexFileHeader.substr(-31);
 		download(data);
-	};
-	
-	function pythonToHex(){
-		var pythonCode = Blockly.Python.workspaceToCode(workspace);
-		//var pythonCode = "from microbit import *\nwhile True:\n\tdisplay.set_pixel(0,0,9)\n\tdisplay.set_pixel(0,2,9)\n\tdisplay.set_pixel(0,4,9)\n\tdisplay.set_pixel(1,0,9)\n\tdisplay.set_pixel(1,1,9)\n\tdisplay.set_pixel(1,2,9)\n\tdisplay.set_pixel(1,3,9)\n\tdisplay.set_pixel(1,4,9)";
-		var pth = pythonCode.length;
-		dataLength = 4 + pythonCode.length + (16 - (4 + pythonCode.length) % 16);
-		var data = [];
-        data[0] = 77;
-        data[1] = 80;
-        data[2] = unsignedToSignedBit(pythonCode.length & 0xFF);
-        data[3] = unsignedToSignedBit((pythonCode.length >> 8) & 0xff);
-        for (var i = 0; i < pythonCode.length; ++i) {
-            data[4+i] = unsignedToSignedBit((pythonCode.charCodeAt(i) & 0xFF));
-        }
-        if (dataLength > 8192) {
-            throw new Exception("Script is too long");
-        }
-        var addr = 0x3e000;
-        var chunk = [];
 
-        var stringBuilder = [];
-        stringBuilder.push(":020000040003F7","\n");
-        for (var i = 0; i < dataLength; i += 16) {
-			chunk = [];
-            chunk[0] = 16;
-            chunk[1] = unsignedToSignedBit((addr >> 8) & 0xFF);
-            chunk[2] = unsignedToSignedBit(addr & 0xFF);
-            chunk[3] = 0;
-            for (var j = 0; j < 16; j++) {
-                chunk[4 + j] = unsignedToSignedBit(data[i + j] | 0);
-            }
-            var checksum = 0x0;
-            for (var j = 0; j < 4 + 16; j++) {
-                checksum += unsignedToSignedBit(chunk[j] & 0xFF);
-            }
-			
-            chunk[20] = (-checksum & 0xFF);
-			console.log(chunk);
-            stringBuilder.push(':',toHexString(chunk).toUpperCase(),"\n");
-            addr += 16;
-        }
-        return stringBuilder.join('');
-	}
-	
-	function toHexString(byteArray){
-		var ret = "";
-		for (var i=0;i<byteArray.length;i++){
-			a = byteArray[i];
-			if (a<0)
-			{
-				a+=256;
+
+        function download(data){
+            const blob = new Blob([data],{type:'application/octer-stream'});
+            const url = window.URL.createObjectURL(blob);
+            const a= document.createElement('a');
+            a.setAttribute('hidden','');
+            a.setAttribute('href',url);
+            a.setAttribute('download','download.hex');
+            a.click();
+        };
+		
+		function pythonToHex(){
+			var pythonCode = Blockly.Python.workspaceToCode(workspace);
+			//var pythonCode = "from microbit import *\nwhile True:\n\tdisplay.set_pixel(0,0,9)\n\tdisplay.set_pixel(0,2,9)\n\tdisplay.set_pixel(0,4,9)\n\tdisplay.set_pixel(1,0,9)\n\tdisplay.set_pixel(1,1,9)\n\tdisplay.set_pixel(1,2,9)\n\tdisplay.set_pixel(1,3,9)\n\tdisplay.set_pixel(1,4,9)";
+			var pth = pythonCode.length;
+			dataLength = 4 + pythonCode.length + (16 - (4 + pythonCode.length) % 16);
+			var data = [];
+			data[0] = 77;
+			data[1] = 80;
+			data[2] = unsignedToSignedBit(pythonCode.length & 0xFF);
+			data[3] = unsignedToSignedBit((pythonCode.length >> 8) & 0xff);
+			for (var i = 0; i < pythonCode.length; ++i) {
+				data[4+i] = unsignedToSignedBit((pythonCode.charCodeAt(i) & 0xFF));
 			}
-			if (a < 16)
-			{
-				ret += "0"+a.toString(16);
+			if (dataLength > 8192) {
+				throw new Exception("Script is too long");
 			}
-			else
-			{	
-				ret += a.toString(16);
-			}	
+			var addr = 0x3e000;
+			var chunk = [];
+
+			var stringBuilder = [];
+			stringBuilder.push(":020000040003F7","\n");
+			for (var i = 0; i < dataLength; i += 16) {
+				chunk = [];
+				chunk[0] = 16;
+				chunk[1] = unsignedToSignedBit((addr >> 8) & 0xFF);
+				chunk[2] = unsignedToSignedBit(addr & 0xFF);
+				chunk[3] = 0;
+				for (var j = 0; j < 16; j++) {
+					chunk[4 + j] = unsignedToSignedBit(data[i + j] | 0);
+				}
+				var checksum = 0x0;
+				for (var j = 0; j < 4 + 16; j++) {
+					checksum += unsignedToSignedBit(chunk[j] & 0xFF);
+				}
+				
+				chunk[20] = (-checksum & 0xFF);
+				console.log(chunk);
+				stringBuilder.push(':',toHexString(chunk).toUpperCase(),"\n");
+				addr += 16;
+			}
+			return stringBuilder.join('');
 		}
-		return ret;
-	}
-	
-	function unsignedToSignedBit(i){
-		if (i > 128) {
-		   i = i-256;
+		
+		function toHexString(byteArray){
+			var ret = "";
+			for (var i=0;i<byteArray.length;i++){
+				a = byteArray[i];
+				if (a<0){
+					a+=256;
+				}
+				if (a < 16){
+					ret += "0"+a.toString(16);
+				}
+				else{	
+					ret += a.toString(16);
+				}	
+			}
+			return ret;
 		}
-		return i;
-	}
+		
+		function unsignedToSignedBit(i){
+			if (i > 128) {
+			   i = i-256;
+			}
+			return i;
+		}
+	};
 	
 	
 	/* // ALL the following code is for the simulation - May not be used
