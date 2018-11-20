@@ -22,6 +22,10 @@
 
 <button onclick="startDownload()"> click me</button>
 <xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">
+	<category name="Exercise" id="exerciseBlock" colour="#5C8183">
+		<block type="logic_boolean" class="exerciseBlock"></block>
+		<block type="controls_ifelse" class="exerciseBlock"></block>
+	</category>
     <category name="Logic" colour="#5C81A6">
 		<block type="logic_boolean"></block>
         <block type="controls_if"></block>
@@ -208,10 +212,13 @@
 		toolbox: document.getElementById('toolbox')
 	});
 	
+	console.log(document.querySelector("#exerciseBlock").childNodes);
+	
 	Blockly.ContextMenu= false; /// provoque une erreur dans la console pour chaques cliq droit, ignorer?
 	
 	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
 	var currentGroup = null;
+	var currentEx = 1;
 	var hexFileHeader = <%- hexFileHeader %>;
 	
 	workspace.addChangeListener(mirrorEvent);
@@ -242,14 +249,15 @@
 	
 	// Send an xmlhttprequest to the server when the exercise is changed
 	function changeExercise(obj){ /// a fixer
+	
 		var json = {};
-		json.userID = <%- userID %> ;
-		json.currentExerciseID = exerciselist[exerciselist.selectedIndex].value;
-		json.time =new Date().toISOString().slice(0, 19).replace('T',' ');
 		json.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+		json.userID = <%- userID %> ;
+		json.currentExerciseID = currentEx;
+		currentEx =  exerciselist[exerciselist.selectedIndex].value;
+		json.time =new Date().toISOString().slice(0, 19).replace('T',' ');
 		console.log(json.workspacexml);
 		json.action= "exerciseChangement";
-		var test = JSON.stringify({currentExerciseID:obj[obj.selectedIndex].value});
 		blockEvent+=1;
 		workspace.clear();
 		console.log(exerciseList[0]);
@@ -265,7 +273,7 @@
 		var url = "http://localhost:3000/pageChange/?currentExerciseId="+ obj[obj.selectedIndex].value;
 		xhttp.open("GET",url, true);
 		xhttp.send();
-		console.log(json);
+		console.log(json.workspacexml);
 		postrequest("http://localhost:3000/currentExercise",json);
 	}
 	

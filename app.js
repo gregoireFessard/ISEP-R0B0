@@ -182,10 +182,11 @@ app.get('/', function(req, res){ // a simplifier?
 // Called when changing exercise page
 app.get('/pageChange',function(req,res){ // a refaire
 	// Get the xml code for the workspace of the next page
-	connection.query('SELECT xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10) + ' DESC LIMIT 1'),function(err,result){
+	connection.query('SELECT blockid,xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)) + " ORDER BY `workspacexml`.`blockid` DESC LIMIT 1",function(err,result){
 		if (err){
 			console.log(err);
 		}
+		console.log("HERE");
 		console.log(result);
 		console.log("new xml for workspace :",result[0]);
 		var ret = null
@@ -316,14 +317,14 @@ app.post('/categoryEvent',function(req,res){
 });
 
 app.post('/mousePosition',function(req,res){
-	console.log("new mousePosition");
+	//console.log("new mousePosition");
 	var val = [[req.body.userID,req.body.currentExerciseID,req.body.x,req.body.y,req.body.time]];
-	console.log(val);
+	//console.log(val);
 	connection.query('INSERT INTO mousepos (userid,exerciseid,xposition,yposition,mptime) VALUES ?',[val],function(err,result){
 		if (err){
 			console.log(err);
 		}
-		console.log("done mousePosition");
+		//console.log("done mousePosition");
 	});
 	res.end('end');	
 });
