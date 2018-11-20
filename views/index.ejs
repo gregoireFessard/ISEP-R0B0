@@ -13,6 +13,8 @@
 <body>
 <p> <%= userID %> </p>
 <select id="exerciselist" onchange="changeExercise(this)"></select>
+<p id=exerciseStatement></p>
+
 <div id="main">
     <div id="blocklyDiv"></div>
     <textarea id="pythonArea" disabled></textarea>
@@ -20,6 +22,10 @@
 
 <button onclick="startDownload()"> click me</button>
 <xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">
+	<category name="Exercise" id="exerciseBlock" colour="#5C8183">
+		<block type="logic_boolean" class="exerciseBlock"></block>
+		<block type="controls_ifelse" class="exerciseBlock"></block>
+	</category>
     <category name="Logic" colour="#5C81A6">
 		<block type="logic_boolean"></block>
         <block type="controls_if"></block>
@@ -206,13 +212,19 @@
 		toolbox: document.getElementById('toolbox')
 	});
 	
+	console.log(document.querySelector("#exerciseBlock").childNodes);
+	
+	Blockly.ContextMenu= false; /// provoque une erreur dans la console pour chaques cliq droit, ignorer?
+	
 	var blockEvent = 0; // used to prevent the logging when changing workspace from javascript
 	var currentGroup = null;
+	var currentEx = 1;
 	var hexFileHeader = <%- hexFileHeader %>;
 	
 	workspace.addChangeListener(mirrorEvent);
 	loadXmlToWorkspace(<%- workspacexml %>);
-	loadExerciseList( <%- exerciselist %>);
+	var exerciseList = <%- exerciselist %>;
+	loadExerciseList( exerciseList);		/// clarifier les exerciselist et exerciseList
 	
 	// Load the exercise from an array and put it in the selector
 	function loadExerciseList(exerciselist){ 
@@ -223,6 +235,7 @@
 			option.text =  exerciselist[i]["title"];
 			exerciseSelector.appendChild(option);
 		}
+		document.querySelector("#exerciseStatement").innerHTML = exerciseList[0]["content"];
 	
 	}
 	
@@ -235,11 +248,20 @@
 	}
 	
 	// Send an xmlhttprequest to the server when the exercise is changed
-	function changeExercise(obj){
-		console.log(obj[obj.selectedIndex].value);
-		var test = JSON.stringify({currentExerciseID:obj[obj.selectedIndex].value});
+	function changeExercise(obj){ /// a fixer
+	
+		var json = {};
+		json.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+		json.userID = <%- userID %> ;
+		json.currentExerciseID = currentEx;
+		currentEx =  exerciselist[exerciselist.selectedIndex].value;
+		json.time =new Date().toISOString().slice(0, 19).replace('T',' ');
+		console.log(json.workspacexml);
+		json.action= "exerciseChangement";
 		blockEvent+=1;
 		workspace.clear();
+		console.log(exerciseList[0]);
+		document.querySelector("#exerciseStatement").innerHTML = exerciseList[(obj[obj.selectedIndex].value)-1]["content"];
 		var xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4 && this.status == 200) {
@@ -251,149 +273,194 @@
 		var url = "http://localhost:3000/pageChange/?currentExerciseId="+ obj[obj.selectedIndex].value;
 		xhttp.open("GET",url, true);
 		xhttp.send();
+		console.log(json.workspacexml);
+		postrequest("http://localhost:3000/currentExercise",json);
 	}
-
+	
+	var mousePosition = {};
+	var previousPosition = {};
+	document.onmousemove = getMousePos;
+	setTimeout(sendMousePos,100);
+	
+	function getMousePos(e){
+		mousePosition.x = e.clientX;
+		mousePosition.y = e.clientY;
+		mousePosition.time = new Date().toISOString().slice(0, 19).replace('T',' ');
+	}
+	
+	function sendMousePos(){		
+		if ((mousePosition.x != previousPosition.x) && (mousePosition.y != previousPosition.y)){
+		
+			previousPosition.x = mousePosition.x;
+			previousPosition.y = mousePosition.y;
+			
+			mousePosition.userID = <%- userID %> ;
+			mousePosition.currentExerciseID = exerciselist[exerciselist.selectedIndex].value;
+			//console.log(mousePosition);
+			postrequest("http://localhost:3000/mousePosition",mousePosition);
+		}
+		setTimeout(sendMousePos,100);
+	}
+	
 	// Called for each event on block, and sent to the server to be logged
 	function mirrorEvent(primaryEvent) {
-	    var pythonArea = document.getElementById('pythonArea');
-		pythonArea.value = Blockly.Python.workspaceToCode(workspace);
-		var exerciselist = document.querySelector('#exerciselist');
-		//console.log(pythonArea.value);
-		var code= pythonArea.value;
-		//document.getElementById('hiddenPythonCode').value = Blockly.Python.workspaceToCode(workspace);
-		//document.getElementById('hiddenWorkspace').value = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-		console.log(primaryEvent);
-		if (primaryEvent.type == Blockly.Events.UI) {
-		   return;  // Don't mirror UI events.
+		var url;
+		var json;
+		json = primaryEvent.toJson();
+		var url;
+		switch(primaryEvent.type){ 
+			// ui event : category, click and select
+			case "ui":
+				url = "http://localhost:3000/categoryEvent";
+				json.group = (json.group || null);
+				json.type += json.element;
+				json.newValue = ((json.newValue || json.blockId) || null );
+				break;
+			// create event : when a block is created
+			case "create":
+				url = "http://localhost:3000/createBlock";
+				json.xml = json.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
+				break;
+			// move event : when a block is moved
+			// combine event : when a block has a new parent
+			case "move":
+				url = "http://localhost:3000/moveBlock";
+				if (primaryEvent.newParentId != null){
+					json.type = "combine";
+					json.newInputName = (json.newInputName || null);	
+					url = "http://localhost:3000/combineBlock";
+					console.log(url);
+				}
+				break;
+			// change event : when a block is changed
+			case "change":
+				url = "http://localhost:3000/changeBlock";
+				break;
+			// delete event : when a block is deleted
+			case "delete":
+				url = "http://localhost:3000/deleteBlock";
+				break;
+			// when a new variable is created	
+			case "var_create":
+				url = "http://localhost:3000/varEvent";
+				json.group = null;
+				break;
+			// when a variable is removed
+			case "var_delete":
+				url = "http://localhost:3000/varEvent";
+				break;
+			// when a variable is renamed
+			case "var_rename":
+				url = "http://localhost:3000/varEvent";
+				json.varName = json.newName;
+				console.log("var_rename");
+				break;
+			// default event, for the event not used
+			default:
+				console.log("ERROR : UNKNOW EVENT ", primaryEvent.type);
+				return;
 		}
-		if (primaryEvent.group == currentGroup)
-			return;
-		if (blockEvent != 0)
-		{
-			currentGroup = primaryEvent.group;
-			blockEvent-=1;
-			return;
-		}
-		currentGroup = null;
-		// Convert event to JSON.  This could then be transmitted across the net.
-		var json1 = primaryEvent.toJson();
-		var timeStamp = Math.floor(Date.now() / 1000);
-		if (json1.type == 'create') // inutile??
-		{
-			var spl = eval(json1);
-			spl = spl.xml;
-
-			spl = spl.split('type');
-			spl = spl[1];
-			spl = spl.split('"');
-			var block= spl[1];
-			json1.block= block;
-		}
-
-		// Convert JSON back into an event, then execute it.
-		json1.pycode=code;
-		json1.time= new Date().toISOString().slice(0, 19).replace('T', ' ');
-		json1.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-		json1.currentExercise = exerciselist[exerciselist.selectedIndex].value;
-		if (json1.xml)
-		{
-			json1.xml = json1.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
-		}
-		console.log(json1);
-		console.log(typeof json1);
-		var xmlhttp = new XMLHttpRequest();   // new HttpRequest instance
-		var url = "http://localhost:3000/blocklogging";
-		xmlhttp.open("POST", url,true);
-		xmlhttp.setRequestHeader("Content-Type", "application/json");
-		xmlhttp.send(JSON.stringify(json1));
-		pythonToHex();
+		
+		json.userID = <%- userID %> ;
+		json.currentExerciseID = exerciselist[exerciselist.selectedIndex].value; //exerciselist work but i don't know why? need to redefine it?
+		json.time= new Date().toISOString().slice(0, 19).replace('T',' ');
+		
+		console.log(json,url);
+		postrequest(url,json);
 	}
 	
-	const download = function(data){
-		const blob = new Blob([data],{type:'application/octer-stream'});
-		const url = window.URL.createObjectURL(blob);
-		const a= document.createElement('a');
-		a.setAttribute('hidden','');
-		a.setAttribute('href',url);
-		a.setAttribute('download','download.hex');
-		a.click();
-	};
+	const postrequest = async function(url,content){
+		var xmlhttp = new XMLHttpRequest();
+		xmlhttp.open("POST",url,true);
+		xmlhttp.setRequestHeader("Content-Type","application/json");
+		xmlhttp.send(JSON.stringify(content));	
+	}
 	
+	
+	// download python code as hex file
 	const startDownload = async function(){
 		
 		var data = hexFileHeader.substr(0,hexFileHeader.length-31) + pythonToHex() + hexFileHeader.substr(-31);
 		download(data);
-	};
-	
-	function pythonToHex(){
-		var pythonCode = Blockly.Python.workspaceToCode(workspace);
-		//var pythonCode = "from microbit import *\nwhile True:\n\tdisplay.set_pixel(0,0,9)\n\tdisplay.set_pixel(0,2,9)\n\tdisplay.set_pixel(0,4,9)\n\tdisplay.set_pixel(1,0,9)\n\tdisplay.set_pixel(1,1,9)\n\tdisplay.set_pixel(1,2,9)\n\tdisplay.set_pixel(1,3,9)\n\tdisplay.set_pixel(1,4,9)";
-		var pth = pythonCode.length;
-		dataLength = 4 + pythonCode.length + (16 - (4 + pythonCode.length) % 16);
-		var data = [];
-        data[0] = 77;
-        data[1] = 80;
-        data[2] = unsignedToSignedBit(pythonCode.length & 0xFF);
-        data[3] = unsignedToSignedBit((pythonCode.length >> 8) & 0xff);
-        for (var i = 0; i < pythonCode.length; ++i) {
-            data[4+i] = unsignedToSignedBit((pythonCode.charCodeAt(i) & 0xFF));
-        }
-        if (dataLength > 8192) {
-            throw new Exception("Script is too long");
-        }
-        var addr = 0x3e000;
-        var chunk = [];
 
-        var stringBuilder = [];
-        stringBuilder.push(":020000040003F7","\n");
-        for (var i = 0; i < dataLength; i += 16) {
-			chunk = [];
-            chunk[0] = 16;
-            chunk[1] = unsignedToSignedBit((addr >> 8) & 0xFF);
-            chunk[2] = unsignedToSignedBit(addr & 0xFF);
-            chunk[3] = 0;
-            for (var j = 0; j < 16; j++) {
-                chunk[4 + j] = unsignedToSignedBit(data[i + j] | 0);
-            }
-            var checksum = 0x0;
-            for (var j = 0; j < 4 + 16; j++) {
-                checksum += unsignedToSignedBit(chunk[j] & 0xFF);
-            }
-			
-            chunk[20] = (-checksum & 0xFF);
-			console.log(chunk);
-            stringBuilder.push(':',toHexString(chunk).toUpperCase(),"\n");
-            addr += 16;
-        }
-        return stringBuilder.join('');
-	}
-	
-	function toHexString(byteArray){
-		var ret = "";
-		for (var i=0;i<byteArray.length;i++){
-			a = byteArray[i];
-			if (a<0)
-			{
-				a+=256;
+
+        function download(data){
+            const blob = new Blob([data],{type:'application/octer-stream'});
+            const url = window.URL.createObjectURL(blob);
+            const a= document.createElement('a');
+            a.setAttribute('hidden','');
+            a.setAttribute('href',url);
+            a.setAttribute('download','download.hex');
+            a.click();
+        };
+		
+		function pythonToHex(){
+			var pythonCode = Blockly.Python.workspaceToCode(workspace);
+			//var pythonCode = "from microbit import *\nwhile True:\n\tdisplay.set_pixel(0,0,9)\n\tdisplay.set_pixel(0,2,9)\n\tdisplay.set_pixel(0,4,9)\n\tdisplay.set_pixel(1,0,9)\n\tdisplay.set_pixel(1,1,9)\n\tdisplay.set_pixel(1,2,9)\n\tdisplay.set_pixel(1,3,9)\n\tdisplay.set_pixel(1,4,9)";
+			var pth = pythonCode.length;
+			dataLength = 4 + pythonCode.length + (16 - (4 + pythonCode.length) % 16);
+			var data = [];
+			data[0] = 77;
+			data[1] = 80;
+			data[2] = unsignedToSignedBit(pythonCode.length & 0xFF);
+			data[3] = unsignedToSignedBit((pythonCode.length >> 8) & 0xff);
+			for (var i = 0; i < pythonCode.length; ++i) {
+				data[4+i] = unsignedToSignedBit((pythonCode.charCodeAt(i) & 0xFF));
 			}
-			if (a < 16)
-			{
-				ret += "0"+a.toString(16);
+			if (dataLength > 8192) {
+				throw new Exception("Script is too long");
 			}
-			else
-			{	
-				ret += a.toString(16);
-			}	
+			var addr = 0x3e000;
+			var chunk = [];
+
+			var stringBuilder = [];
+			stringBuilder.push(":020000040003F7","\n");
+			for (var i = 0; i < dataLength; i += 16) {
+				chunk = [];
+				chunk[0] = 16;
+				chunk[1] = unsignedToSignedBit((addr >> 8) & 0xFF);
+				chunk[2] = unsignedToSignedBit(addr & 0xFF);
+				chunk[3] = 0;
+				for (var j = 0; j < 16; j++) {
+					chunk[4 + j] = unsignedToSignedBit(data[i + j] | 0);
+				}
+				var checksum = 0x0;
+				for (var j = 0; j < 4 + 16; j++) {
+					checksum += unsignedToSignedBit(chunk[j] & 0xFF);
+				}
+				
+				chunk[20] = (-checksum & 0xFF);
+				console.log(chunk);
+				stringBuilder.push(':',toHexString(chunk).toUpperCase(),"\n");
+				addr += 16;
+			}
+			return stringBuilder.join('');
 		}
-		return ret;
-	}
-	
-	function unsignedToSignedBit(i){
-		if (i > 128) {
-		   i = i-256;
+		
+		function toHexString(byteArray){
+			var ret = "";
+			for (var i=0;i<byteArray.length;i++){
+				a = byteArray[i];
+				if (a<0){
+					a+=256;
+				}
+				if (a < 16){
+					ret += "0"+a.toString(16);
+				}
+				else{	
+					ret += a.toString(16);
+				}	
+			}
+			return ret;
 		}
-		return i;
-	}
+		
+		function unsignedToSignedBit(i){
+			if (i > 128) {
+			   i = i-256;
+			}
+			return i;
+		}
+	};
 	
 	
 	/* // ALL the following code is for the simulation - May not be used

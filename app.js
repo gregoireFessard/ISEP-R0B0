@@ -128,7 +128,7 @@ app.get('/', function(req, res){ // a simplifier?
 					req.exerciselist = result1;
 					req.workspacexml = null;
 					// Get the xml for the workspace if it exists
-					connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
+					connection.query('SELECT xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
 						if (err){
 							console.log(err);
 						}
@@ -156,7 +156,7 @@ app.get('/', function(req, res){ // a simplifier?
 						req.exerciselist = result1;
 						req.workspacexml = null;
 						// Get the xml workspace if it exist
-						connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
+						connection.query('SELECT xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) + ' AND exerciseid=1',function(err,result2){
 							if (err){
 								console.log(err);
 							}
@@ -180,121 +180,175 @@ app.get('/', function(req, res){ // a simplifier?
 
 
 // Called when changing exercise page
-app.get('/pageChange',function(req,res){
+app.get('/pageChange',function(req,res){ // a refaire
 	// Get the xml code for the workspace of the next page
-	connection.query('SELECT xml FROM block WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)),function(err,result){
+	connection.query('SELECT blockid,xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)) + " ORDER BY `workspacexml`.`blockid` DESC LIMIT 1",function(err,result){
 		if (err){
 			console.log(err);
 		}
+		console.log("HERE");
+		console.log(result);
 		console.log("new xml for workspace :",result[0]);
 		var ret = null
 		if (result[0])
 			ret = result[0].xml;
 		res.send(ret);
 	});
+	
 });
 
-// Called for a block event
-app.post('/blocklogging',function(req,res){
-    var jsondata = req.body;
-	console.log(jsondata);
-	var values = [];
-	var id;
-	var type;
-	blockLogValues = [];
-	// Change a move with a newParentId to a combine
-	if (jsondata.newParentId){ // a simplifier
-		console.log("combination");
-		jsondata.type = "combine";
-	}
-	else if (!jsondata.newCoordinate && jsondata.type == 'move'){ // can be removed?
-		console.log("ERROR, CANNOT PROCEED EVENT FOR : ",jsondata);
-	}
-	blockLogValues.push([req.session.userID,jsondata.currentExercise,jsondata.blockId,jsondata.type,jsondata.time]);
-	console.log("Logging new blockLog :",blockLogValues);
-	var blocklogID = null;
-	// Logging a new blocklog and getting it's id for the next log
-	connection.query('INSERT INTO blocklog (userid,exerciseid,blockid,logtype,logtime) VALUES ?',[blockLogValues],function(err,result){
+app.post('/createblock',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.blockId,req.body.type,req.body.time]];
+	console.log("new create");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
 		if (err){
 			console.log(err);
 		}
-		blocklogID = result.insertId;
-		switch(jsondata.type){
-			case 'create':
-				values.push([blocklogID,jsondata.xml]);
-				console.log("Logging new blockcreate :",values);
-				// Logging a new blocreate
-				connection.query('INSERT INTO blockcreate (createid,xml) VALUES ?',[values],function(err,result){
-					if (err){
-						console.log(err);
-					}
-				});
-				break;
-				
-			case 'move':
-				values.push([blocklogID,jsondata.newCoordinate]);
-				console.log("Logging new blockmove :",values);	
-				// Logging new blockmove
-				connection.query('INSERT INTO blockmove (moveid,newcoordinate) VALUES ?',[values],function(err,result){
-					if (err){
-						console.log(err);
-					}
-				});
-				break;
-				
-			case 'combine':
-				if (jsondata.newInputName){ // a simplifier
-					values.push([blocklogID,jsondata.newParentId,jsondata.newInputName]);
-				}
-				else{
-					values.push([blocklogID,jsondata.newParentId,null]);
-				}
-				console.log("Logging new blockcombine :",values);
-				//logging new blockcomine
-				connection.query('INSERT INTO blockcombine (combineid,newparentid,newinputname) VALUES ?',[values],function(err,result){
-					if (err){
-						console.log(err);
-					}
-				});
-				break;
-				
-			case 'delete':
-				values.push([blocklogID,JSON.stringify(jsondata.ids)]);
-				console.log("Logging new blockdelete :",values);
-				// Logging new blockdelete
-				connection.query('INSERT INTO blockdelete (deleteid,delids) VALUES ?',[values],function(err,result){
-					if (err){
-						console.log(err);
-					}
-				});					
-				break;
-				
-			case 'change':
-				values.push([blocklogID,jsondata.name,jsondata.newValue]);
-				console.log("Logging new blockchange :",values);
-				// Logging new blockchange
-				connection.query('INSERT INTO blockchange (changeid,vartype,var) VALUES ?',[values],function(err,result){
-					if (err){
-						console.log(err);
-					}
-				});					
-				break;
-				
-			default:
-				console.log("ERROR, type of event not recognized :",jsondata.type);
-		}	
+		var val2 = [[result.insertId,req.body.xml]];
+		connection.query('INSERT INTO blockcreate (createid,xml) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done create");
+		});
 	});
-	blockValues = [];
-	blockValues.push([req.session.userID,jsondata.currentExercise,jsondata.workspacexml]);
-	console.log("Logging new block xml :",blockValues);
-	// Logging new block
-	connection.query('REPLACE INTO block (userid,exerciseid,xml) VALUES ?',[blockValues],function(err,result){
-		if (err){
-			console.log(err);
-		}
-	});
-    res.end('end');
+	res.end('end');
 });
+
+app.post('/moveBlock',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.blockId,req.body.type,req.body.time]];
+	console.log("new move");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		var val2 = [[result.insertId,req.body.newCoordinate]];
+		connection.query('INSERT INTO blockmove (moveid,newcoordinate) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done move");
+		});
+	});
+	res.end('end');
+});
+
+app.post('/combineBlock',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.blockId,req.body.type,req.body.time]];
+	console.log("new combine");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		var val2 = [[result.insertId,req.body.newParentId,req.body.newInputName]];
+		connection.query('INSERT INTO blockcombine (combineid,newparentid,newinputname) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done combine");
+		});
+	});
+	res.end('end');
+});
+
+app.post('/changeBlock',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.blockId,req.body.type,req.body.time]];
+	console.log("new change");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		var val2 = [[result.insertId,req.body.name,req.body.newValue]];
+		connection.query('INSERT INTO blockchange (changeid,vartype,var) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done change");
+		});
+	});
+});
+
+app.post('/deleteBlock',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.blockId,req.body.type,req.body.time]];
+	console.log("new delete");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		var val2 = [[result.insertId,JSON.stringify(req.body.ids)]];
+		connection.query('INSERT INTO blockdelete (deleteid,delids) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done delete");
+		});
+	});
+	res.end('end');
+});
+
+app.post('/varEvent',function(req,res){
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.varId,req.body.type,req.body.time]];
+	console.log("new var");
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		var val2 = [[result.insertId,req.body.varName]];
+		connection.query('INSERT INTO varlog (varlogid,var) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done var");
+		});
+	});
+	res.end('end');
+});
+
+app.post('/categoryEvent',function(req,res){
+	console.log("new category");
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.group,req.body.newValue,req.body.type,req.body.time]];
+	connection.query('INSERT INTO eventworkspace (userid,exerciseid,groupid,blocklyid,logtype,logtime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		console.log("done category");
+	});
+	res.end('end');
+});
+
+app.post('/mousePosition',function(req,res){
+	//console.log("new mousePosition");
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.x,req.body.y,req.body.time]];
+	//console.log(val);
+	connection.query('INSERT INTO mousepos (userid,exerciseid,xposition,yposition,mptime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		//console.log("done mousePosition");
+	});
+	res.end('end');	
+});
+
+app.post('/currentExercise',function(req,res){
+	console.log("new currentExercise");
+	var val = [[req.body.userID,req.body.currentExerciseID,req.body.time]];
+	connection.query('INSERT INTO currentex (userid,exerciseid,cptime) VALUES ?',[val],function(err,result){
+		if (err){
+			console.log(err);
+		}
+		console.log("done currentExercise");
+		console.log("new workspacexml");
+		var val2 = [[req.body.userID,req.body.currentExerciseID,req.body.action,req.body.workspacexml,req.body.time]];
+		connection.query('INSERT INTO workspacexml (userid,exerciseid,action,xml,blocktime) VALUES ?',[val2],function(err,result){
+			if (err){
+				console.log(err);
+			}
+			console.log("done workspacexml");
+		});
+	});
+	res.end('end');	
+});
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
