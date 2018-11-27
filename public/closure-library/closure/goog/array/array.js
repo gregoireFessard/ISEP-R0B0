@@ -44,7 +44,7 @@ goog.define('goog.NATIVE_ARRAY_PROTOTYPES', goog.TRUSTED_SITE);
 
 /**
  * @define {boolean} If true, JSCompiler will use the native implementation of
- * array functions where appropriate (e.g., {@code Array#filter}) and remove the
+ * array functions where appropriate (e.g., `Array#filter`) and remove the
  * unused pure JS implementation.
  */
 goog.define('goog.array.ASSUME_NATIVE_FUNCTIONS', false);
@@ -819,7 +819,7 @@ goog.array.join = function(var_args) {
 goog.array.toArray = function(object) {
   var length = object.length;
 
-  // If length is not a number the following it false. This case is kept for
+  // If length is not a number the following is false. This case is kept for
   // backwards compatibility since there are callers that pass objects that are
   // not array like.
   if (length > 0) {
@@ -855,8 +855,8 @@ goog.array.clone = goog.array.toArray;
  * a; // [0, 1, 2]
  *
  * @param {Array<VALUE>} arr1  The array to modify.
- * @param {...(Array<VALUE>|VALUE)} var_args The elements or arrays of elements
- *     to add to arr1.
+ * @param {...(IArrayLike<VALUE>|VALUE)} var_args The elements or arrays of
+ *     elements to add to arr1.
  * @template VALUE
  */
 goog.array.extend = function(arr1, var_args) {
@@ -991,9 +991,9 @@ goog.array.removeDuplicates = function(arr, opt_rv, opt_hashFn) {
  * @param {TARGET} target The sought value.
  * @param {function(TARGET, VALUE): number=} opt_compareFn Optional comparison
  *     function by which the array is ordered. Should take 2 arguments to
- *     compare, and return a negative number, zero, or a positive number
- *     depending on whether the first argument is less than, equal to, or
- *     greater than the second.
+ *     compare, the target value and an element from your array, and return a
+ *     negative number, zero, or a positive number depending on whether the
+ *     first argument is less than, equal to, or greater than the second.
  * @return {number} Lowest index of the target value if found, otherwise
  *     (-(insertion point) - 1). The insertion point is where the value should
  *     be inserted into arr to preserve the sorted property.  Return value >= 0
@@ -1201,7 +1201,7 @@ goog.array.sortObjectsByKey = function(arr, key, opt_compareFn) {
 
 /**
  * Tells if the array is sorted.
- * @param {!Array<T>} arr The array.
+ * @param {!IArrayLike<T>} arr The array.
  * @param {?function(T,T):number=} opt_compareFn Function to compare the
  *     array elements.
  *     Should take 2 arguments to compare, and return a negative number, zero,
@@ -1365,11 +1365,11 @@ goog.array.binaryRemove = function(array, value, opt_compareFn) {
 
 /**
  * Splits an array into disjoint buckets according to a splitting function.
- * @param {Array<T>} array The array.
- * @param {function(this:S, T, number, !Array<T>):?} sorter Function to call for
- *     every element.  This takes 3 arguments (the element, the index and the
- *     array) and must return a valid object key (a string, number, etc), or
- *     undefined, if that object should not be placed in a bucket.
+ * @param {IArrayLike<T>} array The array.
+ * @param {function(this:S, T, number, !IArrayLike<T>):?} sorter Function to
+ *     call for every element.  This takes 3 arguments (the element, the index
+ *     and the array) and must return a valid object key (a string, number,
+ *     etc), or undefined, if that object should not be placed in a bucket.
  * @param {S=} opt_obj The object to be used as the value of 'this' within
  *     sorter.
  * @return {!Object<!Array<T>>} An object, with keys being all of the unique
@@ -1633,8 +1633,8 @@ goog.array.shuffle = function(arr, opt_randFn) {
  * provided by index_arr. For example, the result of index copying
  * ['a', 'b', 'c'] with index_arr [1,0,0,2] is ['b', 'a', 'a', 'c'].
  *
- * @param {!Array<T>} arr The array to get a indexed copy from.
- * @param {!Array<number>} index_arr An array of indexes to get from arr.
+ * @param {!IArrayLike<T>} arr The array to get a indexed copy from.
+ * @param {!IArrayLike<number>} index_arr An array of indexes to get from arr.
  * @return {!Array<T>} A new array of elements from arr in index_arr order.
  * @template T
  */

@@ -24,6 +24,7 @@ goog.require('goog.html.SafeUrl');
 goog.require('goog.html.sanitizer.CssSanitizer');
 goog.require('goog.html.testing');
 goog.require('goog.string');
+goog.require('goog.testing.dom');
 goog.require('goog.testing.jsunit');
 goog.require('goog.userAgent');
 goog.require('goog.userAgent.product');
@@ -107,12 +108,14 @@ function getSanitizedInlineStyle(sourceCss, opt_urlRewrite) {
  * sanitization using {@link CssSanitizer.sanitizeStyleSheetString}.
  * @param {string} expectedCssText
  * @param {string} inputCssText
+ * @param {?string=} opt_containerId
  * @param {function(string, string):?SafeUrl=} opt_uriRewriter
  */
 function assertSanitizedCssEquals(
-    expectedCssText, inputCssText, opt_uriRewriter) {
+    expectedCssText, inputCssText, opt_containerId, opt_uriRewriter) {
   assertBrowserSanitizedCssEquals(
-      {chrome: expectedCssText}, inputCssText, opt_uriRewriter);
+      {chrome: expectedCssText}, inputCssText, opt_containerId,
+      opt_uriRewriter);
 }
 
 
@@ -121,7 +124,7 @@ function assertSanitizedCssEquals(
  * text after sanitization using {@link CssSanitizer.sanitizeStyleSheetString}.
  * Automatically verifies that on older browsers the sanitizer returns an empty
  * string.
- * @param {!{
+ * @param {{
  *     chrome: string,
  *     firefox: (string|undefined),
  *     safari: (string|undefined),
@@ -131,10 +134,11 @@ function assertSanitizedCssEquals(
  *     optional. If a browser is missing, the chrome expected value is used
  *     instead.
  * @param {string} inputCssText
+ * @param {?string=} opt_containerId
  * @param {function(string, string):?SafeUrl=} opt_uriRewriter
  */
 function assertBrowserSanitizedCssEquals(
-    expectedCssTextByBrowser, inputCssText, opt_uriRewriter) {
+    expectedCssTextByBrowser, inputCssText, opt_containerId, opt_uriRewriter) {
   var expectedCssText = undefined;
   if (goog.userAgent.product.CHROME) {
     expectedCssText = expectedCssTextByBrowser.chrome;
@@ -161,7 +165,43 @@ function assertBrowserSanitizedCssEquals(
       expectedCssText,
       goog.html.SafeStyleSheet.unwrap(
           goog.html.sanitizer.CssSanitizer.sanitizeStyleSheetString(
-              inputCssText, 'foo', opt_uriRewriter)));
+              inputCssText,
+              opt_containerId === undefined ? 'foo' : opt_containerId,
+              opt_uriRewriter)));
+}
+
+
+/**
+ * Converts rules in STYLE tags into style attributes on the tags they apply to,
+ * and returns a new string.
+ * @param {string} html
+ * @return {string}
+ */
+function inlineStyleRulesString(html) {
+  var tree = goog.html.sanitizer.CssSanitizer.safeParseHtmlAndGetInertElement(
+      '<span>' + html + '</span>');
+  if (tree == null) {
+    return '';
+  }
+  goog.html.sanitizer.CssSanitizer.inlineStyleRules(tree);
+  return tree.innerHTML;
+}
+
+
+/**
+ * Inlines the rules in STYLE tags in the original HTML and asserts that it is
+ * the same as the expected HTML.
+ * @param {string} expectedHtml
+ * @param {string} originalHtml
+ */
+function assertInlinedStyles(expectedHtml, originalHtml) {
+  var inlinedHtml = inlineStyleRulesString(originalHtml);
+  if (!supportsDomParser) {
+    assertEquals('', inlinedHtml);
+    return;
+  }
+  goog.testing.dom.assertHtmlMatches(
+      expectedHtml, inlinedHtml, true /* opt_strictAttributes */);
 }
 
 
@@ -330,67 +370,112 @@ function testMultipleInlineStyles() {
 }
 
 
-function testSanitizeInlineStyleString() {
-  var tests = [
-    {
-      // empty string
-      inputCss: '',
-      sanitizedCss: ''
-    },
-    {
-      // one rule
-      inputCss: 'color: red',
-      sanitizedCss: 'color: red;'
-    },
-    {
-      // two rules
-      inputCss: 'color: green; padding: 10px',
-      sanitizedCss: 'color: green; padding: 10px;'
-    },
-    {
-      // malicious rule
-      inputCss: 'color: expression("pwned")',
-      sanitizedCss: ''
-    },
-    {
-      // disallowed URL
-      inputCss: 'background-image: url("http://example.com")',
-      sanitizedCss: ''
-    },
-    {
-      // disallowed URL
-      inputCss: 'background-image: url("http://example.com")',
-      sanitizedCss: '',
-      uriRewriter: function(uri) {
+function testSanitizeInlineStyleString_basic() {
+  assertInlineStyleStringEquals('', '');
+  assertInlineStyleStringEquals('color: red;', 'color: red');
+  assertInlineStyleStringEquals(
+      'color: green; padding: 10px;', 'color: green; padding: 10px');
+}
+
+
+function testSanitizeInlineStyleString_malicious() {
+  assertInlineStyleStringEquals('', 'color: expression("pwned")');
+}
+
+
+function testSanitizeInlineStyleString_url() {
+  assertInlineStyleStringEquals(
+      '', 'background-image: url("http://example.com")');
+
+  assertInlineStyleStringEquals(
+      '', 'background-image: url("http://example.com")', function(uri) {
         return null;
-      }
-    },
-    {
-      // allowed URL
-      inputCss: 'background-image: url("http://example.com")',
-      sanitizedCss: 'background-image: url("http://example.com");',
-      uriRewriter: goog.html.SafeUrl.sanitize
-    },
-    {
-      // preserves case
-      inputCss: 'font-family: Roboto, sans-serif',
-      sanitizedCss: 'font-family: Roboto, sans-serif'
-    }
-  ];
+      });
+  assertInlineStyleStringEquals(
+      'background-image: url("http://example.com");',
+      'background-image: url("http://example.com")',
+      goog.html.SafeUrl.sanitize);
+}
 
-  for (var i = 0; i < tests.length; i++) {
-    var test = tests[i];
 
-    var expectedOutput = test.sanitizedCss;
-    if (goog.userAgent.IE && document.documentMode < 10) {
-      expectedOutput = '';
-    }
+function testSanitizeInlineStyleString_unbalancedParenthesesInUnquotedUrl() {
+  assertEquals(
+      '',
+      goog.html.SafeStyle.unwrap(
+          goog.html.sanitizer.CssSanitizer.sanitizeInlineStyleString(
+              'background-image: url(http://example.com/aaa(a)',
+              goog.html.SafeUrl.sanitize)));
+  assertEquals(
+      '',
+      goog.html.SafeStyle.unwrap(
+          goog.html.sanitizer.CssSanitizer.sanitizeInlineStyleString(
+              'background-image: url(http://example.com/aaa)a)',
+              goog.html.SafeUrl.sanitize)));
+}
 
-    var safeStyle = goog.html.sanitizer.CssSanitizer.sanitizeInlineStyleString(
-        test.inputCss, test.uriRewriter);
-    var output = goog.html.SafeStyle.unwrap(safeStyle);
-    assertCSSTextEquals(expectedOutput, output);
+
+function testSanitizeInlineStyleString_preservesCase() {
+  assertInlineStyleStringEquals(
+      'font-family: Roboto, sans-serif', 'font-family: Roboto, sans-serif');
+}
+
+
+function testSanitizeInlineStyleString_simpleFunctions() {
+  var expectedCss = 'color: rgb(1,2,3);';
+  assertInlineStyleStringEquals(expectedCss, expectedCss);
+  expectedCss = 'background-image: linear-gradient(red, blue);';
+  assertInlineStyleStringEquals(expectedCss, expectedCss);
+}
+
+
+function testSanitizeInlineStyleString_nestedFunction() {
+  var expectedCss =
+      'background-image: linear-gradient(217deg, rgba(255,0,0,.8), blue);';
+  assertInlineStyleStringEquals(expectedCss, expectedCss);
+}
+
+
+function testSanitizeInlineStyleString_repeatingLinearGradient() {
+  var expectedCss = 'background-image: repeating-linear-gradient(' +
+      '-45deg, rgb(66, 133, 244), rgb(66, 133, 244) 4px, ' +
+      'rgb(255, 255, 255) 4px, rgb(255, 255, 255) 5px, ' +
+      'rgb(66, 133, 244) 5px, rgb(66, 133, 244) 8px);';
+  assertInlineStyleStringEquals(expectedCss, expectedCss);
+}
+
+
+function testSanitizeInlineStyleString_noUrlPropertyValueFanOut() {
+  if (goog.userAgent.IE && document.documentMode < 10) {
+    return;
   }
+  // Property fanout is ok, but value fanout isn't, because it would lead to
+  // CssPropertySanitizer dropping the value. Check that no browser does
+  // value fanout.
+  var safeStyle = goog.html.sanitizer.CssSanitizer.sanitizeInlineStyleString(
+      'background: url("http://foo.com/a")', goog.html.SafeUrl.sanitize);
+  var output = goog.html.SafeStyle.unwrap(safeStyle);
+  // We can't use assertInlineStyleStringEquals, the browser is inconsistent
+  // about fanout of properties. We'll use plain substring matching instead.
+  assertContains('url("http://foo.com/a")', output);
+}
+
+
+/**
+ * @param {string} expectedCssText
+ * @param {string} inputCssText
+ * @param {function(string, string):?goog.html.SafeUrl=} opt_uriRewriter A URI
+ *     rewriter that returns a goog.html.SafeUrl.
+ */
+function assertInlineStyleStringEquals(
+    expectedCssText, inputCssText, opt_uriRewriter) {
+  if (goog.userAgent.IE && document.documentMode < 10) {
+    expectedCssText = '';
+  }
+
+  var safeStyle = goog.html.sanitizer.CssSanitizer.sanitizeInlineStyleString(
+      inputCssText, opt_uriRewriter);
+  var output = goog.html.SafeStyle.unwrap(safeStyle);
+  assertCSSTextEquals(expectedCssText, output);
 }
 
 
@@ -447,6 +532,12 @@ function testSanitizeStyleSheetString_basic() {
 }
 
 
+function testSanitizeInlineStyleString_noSelector() {
+  var input = 'a{color: red;}';
+  assertSanitizedCssEquals(input, input, null /* opt_containerId */);
+}
+
+
 function testSanitizeStyleSheetString_comma() {
   var input = 'a, b, c > d {color: red}';
   var expected = '#foo a,#foo b,#foo c > d{color: red;}';
@@ -457,6 +548,13 @@ function testSanitizeStyleSheetString_comma() {
 function testSanitizeStyleSheetString_atRule() {
   var input = '@media screen { a { color: red; } }';
   var expected = '';
+  assertSanitizedCssEquals(expected, input);
+}
+
+
+function testSanitizeStyleSheetString_borderSpacing() {
+  var input = 'table { border-spacing: 0px; }';
+  var expected = '#foo table{border-spacing: 0px;}';
   assertSanitizedCssEquals(expected, input);
 }
 
@@ -472,18 +570,28 @@ function testSanitizeStyleSheetString_urlRewrite() {
 
   var input = 'a {background-image: url("http://bar.com")}';
   var quoted = '#foo a{background-image: url("http://bar.com");}';
-  // Safari will strip quotes if they are not needed and add a slash.
-  var unquoted = '#foo a{background-image: url(http://bar.com/);}';
+  // Safari will add a slash.
+  var slash = '#foo a{background-image: url("http://bar.com/");}';
   assertBrowserSanitizedCssEquals(
-      {safari: unquoted, chrome: quoted}, input, urlRewriter);
+      {safari: slash, chrome: quoted}, input, undefined /* opt_containerId */,
+      urlRewriter);
 
   input = 'a {background-image: url("http://nope.com")}';
   var expected = '#foo a{}';
-  assertSanitizedCssEquals(expected, input, urlRewriter);
+  assertSanitizedCssEquals(
+      expected, input, undefined /* opt_containerId */, urlRewriter);
 
   input = 'a{background-image: url("javascript:alert(\"bar\")")}';
   expected = '#foo a{}';
-  assertSanitizedCssEquals(expected, input, urlRewriter);
+  assertSanitizedCssEquals(
+      expected, input, undefined /* opt_containerId */, urlRewriter);
+}
+
+
+function testSanitizeStyleSheetString_unrecognized() {
+  var input = 'a {mso-font-size: 2px; color: black}';
+  var expected = 'a{color: black;}';
+  assertSanitizedCssEquals(expected, input, null /* opt_containerId */);
 }
 
 
@@ -553,12 +661,11 @@ function testSanitizeStyleSheetString_stringWithEscapedQuotesInSelector() {
 
   input = 'a[a="a\\\'b"] { color: grey; }';
   doubleQuoted = '#foo a[a="a\'b"]{color: grey;}';
-  var doubleQuotedWithEscape = '#foo a[a="a\\\'b"]{color: grey;}';
   singleQuoted = '#foo a[a=\'a\\\'b\']{color: grey;}';
   assertBrowserSanitizedCssEquals(
       {
         chrome: doubleQuoted,
-        firefox: doubleQuotedWithEscape,
+        firefox: doubleQuoted,
         ie10: '',
         newIE: singleQuoted
       },
@@ -567,11 +674,10 @@ function testSanitizeStyleSheetString_stringWithEscapedQuotesInSelector() {
   input = 'a[a=\'\\\'b\'] {color: red; }';
   doubleQuoted = '#foo a[a="\'b"]{color: red;}';
   singleQuoted = '#foo a[a=\'\\\'b\']{color: red;}';
-  doubleQuotedWithEscape = '#foo a[a="\\\'b"]{color: red;}';
   assertBrowserSanitizedCssEquals(
       {
         chrome: doubleQuoted,
-        firefox: doubleQuotedWithEscape,
+        firefox: doubleQuoted,
         newIE: singleQuoted,
         ie10: ''
       },
@@ -579,12 +685,11 @@ function testSanitizeStyleSheetString_stringWithEscapedQuotesInSelector() {
 
   input = 'a[foo=\'b\\\'a, ,\'] { color: blue; }';
   doubleQuoted = '#foo a[foo="b\'a, ,"]{color: blue;}';
-  doubleQuotedWithEscape = '#foo a[foo="b\\\'a, ,"]{color: blue;}';
   singleQuoted = '#foo a[foo=\'b\\\'a, ,\']{color: blue;}';
   assertBrowserSanitizedCssEquals(
       {
         chrome: doubleQuoted,
-        firefox: doubleQuotedWithEscape,
+        firefox: doubleQuoted,
         newIE: singleQuoted,
         ie10: ''
       },
@@ -606,4 +711,65 @@ function testSanitizeInlineStyleString_invalidSelector() {
           input, '</style>');
     });
   }
+}
+
+
+function testInlineStyleRules_empty() {
+  assertInlinedStyles('', '');
+}
+
+
+function testInlineStyleRules_basic() {
+  var input = '<style>a{color:red}</style><a>foo</a>';
+  var expected = '<a style="color:red;">foo</a>';
+  assertInlinedStyles(expected, input);
+}
+
+
+function testInlineStyleRules_onlyStyle() {
+  var input = '<style>a{color:red}</style>';
+  assertInlinedStyles('', input);
+}
+
+
+function testInlineStyleRules_noStyle() {
+  var input = '<a>hi</a>';
+  assertInlinedStyles(input, input);
+}
+
+
+function testInlineStyleRules_onlyText() {
+  var input = 'hello';
+  assertInlinedStyles(input, input);
+}
+
+
+function testInlineStyleRules_specificity() {
+  var input = '<style>a{color: red; border: 1px}' +
+      '#foo{color: white; border: 2px}</style>' +
+      '<a id="foo" style="color: black">foo</a>';
+  var expected = '<a id="foo" style="color: black; border: 2px">foo</a>';
+  assertInlinedStyles(expected, input);
+}
+
+
+function testInlineStyleRules_media() {
+  var input = '<style>a{color: red;} @media screen { border: 1px; }</style>' +
+      '<a id="foo">foo</a>';
+  var expected = '<a id="foo" style="color: red;">foo</a>';
+  assertInlinedStyles(expected, input);
+}
+
+
+function testInlineStyleRules_background() {
+  var input = '<style>a{background: none;}</style><a id="foo">foo</a>';
+  var expected = goog.userAgent.product.SAFARI ?
+      // Safari will expand multi-value properties such as background, border,
+      // etc into multiple properties. The result is more verbose but it should
+      // not affect the effective style.
+      ('<a id="foo" style="background-image: none; ' +
+       'background-position: initial initial; ' +
+       'background-repeat: initial initial;">foo</a>') :
+      '<a id="foo" style="background: none;">foo</a>';
+  assertInlinedStyles(expected, input);
 }

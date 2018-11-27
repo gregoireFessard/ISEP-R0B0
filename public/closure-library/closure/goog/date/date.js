@@ -74,6 +74,9 @@ goog.date.month = {
  * @param {string} monthName The month name to use in the result.
  * @param {number} yearNum The numeric year to use in the result.
  * @return {string} A formatted month/year string.
+ * @deprecated Use goog.i18n.DateTimeFormat with
+ *     goog.i18n.DateTimeFormat.Format.YEAR_MONTH_ABBR or
+ *     goog.i18n.DateTimeFormat.Format.YEAR_MONTH_FULL.
  */
 goog.date.formatMonthAndYear = function(monthName, yearNum) {
   /** @desc Month/year format given the month name and the numeric year. */
@@ -225,7 +228,8 @@ goog.date.isSameYear = function(date, opt_now) {
 
 
 /**
- * Static function for week number calculation. ISO 8601 implementation.
+ * Static function for the day of the same week that determines the week number
+ * and year of week.
  *
  * @param {number} year Year part of date.
  * @param {number} month Month part of date (0-11).
@@ -234,9 +238,10 @@ goog.date.isSameYear = function(date, opt_now) {
  * @param {number=} opt_firstDayOfWeek First day of the week, defaults to
  *     Monday.
  *     Monday=0, Sunday=6.
- * @return {number} The week number (1-53).
+ * @return {number} the cutoff day of the same week in millis since epoch.
+ * @private
  */
-goog.date.getWeekNumber = function(
+goog.date.getCutOffSameWeek_ = function(
     year, month, date, opt_weekDay, opt_firstDayOfWeek) {
   var d = new Date(year, month, date);
 
@@ -258,16 +263,55 @@ goog.date.getWeekNumber = function(
   // Unix timestamp of the midnight of the cutoff day in the week of 'd'.
   // There might be +-1 hour shift in the result due to the daylight saving,
   // but it doesn't affect the year.
-  var cutoffSameWeek =
-      d.valueOf() + (cutoffpos - daypos) * goog.date.MS_PER_DAY;
+  return d.valueOf() + (cutoffpos - daypos) * goog.date.MS_PER_DAY;
+};
 
-  // Unix timestamp of January 1 in the year of 'cutoffSameWeek'.
+
+/**
+ * Static function for week number calculation. ISO 8601 implementation.
+ *
+ * @param {number} year Year part of date.
+ * @param {number} month Month part of date (0-11).
+ * @param {number} date Day part of date (1-31).
+ * @param {number=} opt_weekDay Cut off weekday, defaults to Thursday.
+ * @param {number=} opt_firstDayOfWeek First day of the week, defaults to
+ *     Monday.
+ *     Monday=0, Sunday=6.
+ * @return {number} The week number (1-53).
+ */
+goog.date.getWeekNumber = function(
+    year, month, date, opt_weekDay, opt_firstDayOfWeek) {
+  var cutoffSameWeek = goog.date.getCutOffSameWeek_(
+      year, month, date, opt_weekDay, opt_firstDayOfWeek);
+
+  // Unix timestamp of January 1 in the year of the week.
   var jan1 = new Date(new Date(cutoffSameWeek).getFullYear(), 0, 1).valueOf();
 
   // Number of week. The round() eliminates the effect of daylight saving.
   return Math.floor(
              Math.round((cutoffSameWeek - jan1) / goog.date.MS_PER_DAY) / 7) +
       1;
+};
+
+
+/**
+ * Static function for year of the week. ISO 8601 implementation.
+ *
+ * @param {number} year Year part of date.
+ * @param {number} month Month part of date (0-11).
+ * @param {number} date Day part of date (1-31).
+ * @param {number=} opt_weekDay Cut off weekday, defaults to Thursday.
+ * @param {number=} opt_firstDayOfWeek First day of the week, defaults to
+ *     Monday.
+ *     Monday=0, Sunday=6.
+ * @return {number} The four digit year of date.
+ */
+goog.date.getYearOfWeek = function(
+    year, month, date, opt_weekDay, opt_firstDayOfWeek) {
+  var cutoffSameWeek = goog.date.getCutOffSameWeek_(
+      year, month, date, opt_weekDay, opt_firstDayOfWeek);
+
+  return new Date(cutoffSameWeek).getFullYear();
 };
 
 
@@ -294,18 +338,6 @@ goog.date.max = function(date1, date2) {
 
 
 /**
- * Creates a DateTime from a datetime string expressed in ISO 8601 format.
- *
- * @param {string} formatted A date or datetime expressed in ISO 8601 format.
- * @return {goog.date.DateTime} Parsed date or null if parse fails.
- */
-goog.date.fromIsoString = function(formatted) {
-  var ret = new goog.date.DateTime(2000);
-  return goog.date.setIso8601DateTime(ret, formatted) ? ret : null;
-};
-
-
-/**
  * Parses a datetime string expressed in ISO 8601 format. Overwrites the date
  * and optionally the time part of the given object with the parsed values.
  *
@@ -325,7 +357,7 @@ goog.date.setIso8601DateTime = function(dateTime, formatted) {
 /**
  * Sets date fields based on an ISO 8601 format string.
  *
- * @param {!goog.date.DateTime} d Object whose fields will be set.
+ * @param {!goog.date.Date} d Object whose fields will be set.
  * @param {string} formatted A date expressed in ISO 8601 format.
  * @return {boolean} Whether the parsing succeeded.
  * @private
@@ -380,7 +412,7 @@ goog.date.setIso8601DateOnly_ = function(d, formatted) {
  * Example: '1997-W01' lasts from 1996-12-30 to 1997-01-05.  January 1, 1997 is
  * a Wednesday. So W01's Monday is Dec.30, 1996, and Sunday is January 5, 1997.
  *
- * @param {goog.date.DateTime} d Object whose fields will be set.
+ * @param {!goog.date.Date} d Object whose fields will be set.
  * @param {number} week ISO week number.
  * @param {number} dayOfWeek ISO day of week.
  * @private
@@ -995,6 +1027,18 @@ goog.date.Date.prototype.getWeekNumber = function() {
 
 
 /**
+ * Returns year in “Week of Year” based calendars in which the year transition
+ * occurs on a week boundary.
+ * @return {number} The four digit year in "Week of Year"
+ */
+goog.date.Date.prototype.getYearOfWeek = function() {
+  return goog.date.getYearOfWeek(
+      this.getFullYear(), this.getMonth(), this.getDate(),
+      this.firstWeekCutOffDay_, this.firstDayOfWeek_);
+};
+
+
+/**
  * @return {number} The day of year.
  */
 goog.date.Date.prototype.getDayOfYear = function() {
@@ -1306,6 +1350,17 @@ goog.date.Date.compare = function(date1, date2) {
 };
 
 
+/**
+ * Parses an ISO 8601 string as a `goog.date.Date`.
+ * @param {string} formatted ISO 8601 string to parse.
+ * @return {?goog.date.Date} Parsed date or null if parse fails.
+ */
+goog.date.Date.fromIsoString = function(formatted) {
+  var ret = new goog.date.Date(2000);
+  return goog.date.setIso8601DateOnly_(ret, formatted) ? ret : null;
+};
+
+
 
 /**
  * Class representing a date and time. Defaults to current date and time if none
@@ -1314,9 +1369,9 @@ goog.date.Date.compare = function(date1, date2) {
  * Implements most methods of the native js Date object and can be used
  * interchangeably with it just as if goog.date.DateTime was a subclass of Date.
  *
- * @param {number|Object=} opt_year Four digit year or a date-like object. If
- *     not set, the created object will contain the date determined by
- *     goog.now().
+ * @param {(number|{getTime:?}|null)=} opt_year Four digit year or a date-like
+ *     object. If not set, the created object will contain the date determined
+ *     by goog.now().
  * @param {number=} opt_month Month, 0 = Jan, 11 = Dec.
  * @param {number=} opt_date Date of month, 1 - 31.
  * @param {number=} opt_hours Hours, 0 - 23.
@@ -1685,6 +1740,11 @@ goog.date.DateTime.prototype.toString = function() {
  * @param {boolean=} opt_omitZeroMinutes E.g., '5:00pm' becomes '5pm',
  *                                      but '5:01pm' remains '5:01pm'.
  * @return {string} The time label.
+ * @deprecated Use goog.i18n.DateTimeFormat with
+ *     goog.i18n.DateTimeFormat.Format.FULL_TIME or
+ *     goog.i18n.DateTimeFormat.Format.LONG_TIME or
+ *     goog.i18n.DateTimeFormat.Format.MEDIUM_TIME or
+ *     goog.i18n.DateTimeFormat.Format.SHORT_TIME.
  */
 goog.date.DateTime.prototype.toUsTimeString = function(
     opt_padHours, opt_showAmPm, opt_omitZeroMinutes) {
@@ -1749,4 +1809,16 @@ goog.date.DateTime.prototype.clone = function() {
   date.setFirstDayOfWeek(this.getFirstDayOfWeek());
   date.setFirstWeekCutOffDay(this.getFirstWeekCutOffDay());
   return date;
+};
+
+
+/**
+ * Parses an ISO 8601 string as a `goog.date.DateTime`.
+ * @param {string} formatted ISO 8601 string to parse.
+ * @return {?goog.date.DateTime} Parsed date or null if parse fails.
+ * @override
+ */
+goog.date.DateTime.fromIsoString = function(formatted) {
+  var ret = new goog.date.DateTime(2000);
+  return goog.date.setIso8601DateTime(ret, formatted) ? ret : null;
 };

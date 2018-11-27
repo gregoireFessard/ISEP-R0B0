@@ -37,7 +37,9 @@ goog.provide('goog.testing.TestRunner');
 goog.require('goog.dom');
 goog.require('goog.dom.TagName');
 goog.require('goog.dom.safe');
+goog.require('goog.json');
 goog.require('goog.testing.TestCase');
+goog.require('goog.userAgent');
 
 
 
@@ -88,11 +90,29 @@ goog.testing.TestRunner = function() {
   this.strict_ = true;
 
   /**
+   * Store the serializer to avoid it being overwritten by a mock.
+   * @private {function(!Object): string}
+   */
+  this.jsonStringify_ = goog.json.serialize;
+
+  /**
    * An id unique to this runner. Checked by the server during polling to
    * verify that the page was not reloaded.
-   * @private {!string}
+   * @private {string}
    */
-  this.uniqueId_ = Math.random() + '';
+  this.uniqueId_ = ((Math.random() * 1e9) >>> 0) + '-' +
+      window.location.pathname.replace(/.*\//, '').replace(/\.html.*$/, '');
+
+  if (goog.userAgent.IE && !goog.userAgent.isVersionOrHigher(11)) {
+    return;
+  }
+
+  var self = this;
+  function onPageHide() {
+    self.clearUniqueId();
+  }
+  window.addEventListener('pagehide', onPageHide);
+
 };
 
 /**
@@ -106,10 +126,17 @@ goog.testing.TestRunner.prototype.getSearchString = function() {
 
 /**
  * Returns the unique id for this test page.
- * @return {!string}
+ * @return {string}
  */
 goog.testing.TestRunner.prototype.getUniqueId = function() {
   return this.uniqueId_;
+};
+
+/**
+ * Clears the unique id for this page. The value will hint the reason.
+ */
+goog.testing.TestRunner.prototype.clearUniqueId = function() {
+  this.uniqueId_ = 'pagehide';
 };
 
 /**
@@ -157,16 +184,23 @@ goog.testing.TestRunner.prototype.isInitialized = function() {
 
 
 /**
- * Returns true if the test runner is finished.
+ * Returns false if the test runner has not finished successfully.
  * Used by Selenium Hooks.
- * @return {boolean} Whether the test runner is active.
+ * @return {boolean} Whether the test runner is not active.
  */
 goog.testing.TestRunner.prototype.isFinished = function() {
-  return this.errors.length > 0 ||
-      this.initialized && !!this.testCase && this.testCase.started &&
-      !this.testCase.running;
+  return this.errors.length > 0 || this.isComplete();
 };
 
+
+/**
+ * Returns true if the test runner is finished.
+ * @return {boolean} True if the test runner started and subsequently completed.
+ */
+goog.testing.TestRunner.prototype.isComplete = function() {
+  return this.initialized && !!this.testCase && this.testCase.started &&
+      !this.testCase.running;
+};
 
 /**
  * Returns true if the test case didn't fail.
@@ -194,6 +228,12 @@ goog.testing.TestRunner.prototype.hasErrors = function() {
  * @param {string} msg Error message.
  */
 goog.testing.TestRunner.prototype.logError = function(msg) {
+  if (this.isComplete()) {
+    // Once the user has checked their code, subsequent errors can occur
+    // because of tearDown actions. For now, log these but do not fail the test.
+    this.log('Error after test completed: ' + msg);
+    return;
+  }
   if (!this.errorFilter_ || this.errorFilter_.call(null, msg)) {
     this.errors.push(msg);
   }
@@ -284,7 +324,7 @@ goog.testing.TestRunner.prototype.execute = function() {
         'setStrict() method, or G_testRunner.setStrict()');
   }
 
-  this.testCase.setCompletedCallback(goog.bind(this.onComplete_, this));
+  this.testCase.addCompletedCallback(goog.bind(this.onComplete_, this));
   if (goog.testing.TestRunner.shouldUsePromises_(this.testCase)) {
     this.testCase.runTestsReturningPromise();
   } else {
@@ -355,10 +395,13 @@ goog.testing.TestRunner.prototype.writeLog = function(log) {
     var line = lines[i];
     var color;
     var isPassed = /PASSED/.test(line);
+    var isSkipped = /SKIPPED/.test(line);
     var isFailOrError =
         /FAILED/.test(line) || /ERROR/.test(line) || /NO TESTS RUN/.test(line);
     if (isPassed) {
       color = 'darkgreen';
+    } else if (isSkipped) {
+      color = 'slategray';
     } else if (isFailOrError) {
       color = 'darkred';
     } else {
@@ -476,7 +519,19 @@ goog.testing.TestRunner.prototype.getTestResults = function() {
  */
 goog.testing.TestRunner.prototype.getTestResultsAsJson = function() {
   if (this.testCase) {
-    return this.testCase.getTestResultsAsJson();
+    var testCaseResults
+        /** {Object<string, !Array<!goog.testing.TestCase.IResult>>} */
+        = this.testCase.getTestResults();
+    if (this.hasErrors()) {
+      var globalErrors = [];
+      for (var i = 0; i < this.errors.length; i++) {
+        globalErrors.push(
+            {source: '', message: this.errors[i], stacktrace: ''});
+      }
+      // We are writing on our testCase results, but the test is over.
+      testCaseResults['globalErrors'] = globalErrors;
+    }
+    return this.jsonStringify_(testCaseResults);
   }
   return null;
 };

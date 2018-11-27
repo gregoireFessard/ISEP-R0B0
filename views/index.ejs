@@ -11,198 +11,597 @@
     
 </head>
 <body>
+<body>
+	<svg version="1.0" viewBox="0 0 500 408" class="sim" x="0px" y="0px" width="100%" height="100%"><style>
+        svg.sim {
+            box-sizing: border-box;
+            width: 40%;
+            height: 40%;
+            display: block;
+        }
+        svg.sim.grayscale {
+            -moz-filter: grayscale(1);
+            -webkit-filter: grayscale(1);
+            filter: grayscale(1);
+        }
+        .sim-button-group {
+            cursor: pointer;
+        }
+        .sim-button {
+            pointer-events: none;
+        }
+
+        .sim-button-outer:hover {
+            stroke:grey;
+            stroke-width: 3px;
+        }
+        .sim-button-nut {
+            fill:#704A4A;
+            pointer-events:none;
+        }
+        .sim-button-nut:hover {
+            stroke:1px solid #704A4A;
+        }
+        .sim-pin:hover {
+            stroke:#D4AF37;
+            stroke-width:2px;
+        }
+
+        .sim-pin-touch.touched:hover {
+            stroke:darkorange;
+        }
+
+        .sim-led-back:hover {
+            stroke:#a0a0a0;
+            stroke-width:3px;
+        }
+        .sim-led:hover {
+            stroke:#ff7f7f;
+            stroke-width:3px;
+        }
+
+        .sim-systemled {
+            fill:#333;
+            stroke:#555;
+            stroke-width: 1px;
+        }
+
+        .sim-light-level-button {
+            stroke:#fff;
+            stroke-width: 3px;
+        }
+
+        .sim-antenna {
+            stroke:#555;
+            stroke-width: 2px;
+        }
+
+        .sim-text {
+        font-family:"Lucida Console", Monaco, monospace;
+        font-size:25px;
+        fill:#fff;
+        pointer-events: none;
+        }
+
+        .sim-text-pin {
+        font-family:"Lucida Console", Monaco, monospace;
+        font-size:20px;
+        fill:#fff;
+        pointer-events: none;
+        }
+
+        .sim-thermometer {
+            stroke:#aaa;
+            stroke-width: 3px;
+        }
+
+        /* animations */
+        .sim-theme-glow {
+            animation-name: sim-theme-glow-animation;
+            animation-timing-function: ease-in-out;
+            animation-direction: alternate;
+            animation-iteration-count: infinite;
+            animation-duration: 1.25s;
+        }
+        @keyframes sim-theme-glow-animation {
+            from { opacity: 1; }
+            to   { opacity: 0.75; }
+        }
+
+        .sim-flash {
+            animation-name: sim-flash-animation;
+            animation-duration: 0.1s;
+        }
+
+        @keyframes sim-flash-animation {
+            from { fill: yellow; }
+            to   { fill: default; }
+        }
+
+        .sim-flash-stroke {
+            animation-name: sim-flash-stroke-animation;
+            animation-duration: 0.4s;
+            animation-timing-function: ease-in;
+        }
+
+        @keyframes sim-flash-stroke-animation {
+            from { stroke: yellow; }
+            to   { stroke: default; }
+        }
+
+        /* wireframe */
+        .sim-wireframe * {
+            fill: none;
+            stroke: black;
+        }
+        .sim-wireframe .sim-display,
+        .sim-wireframe .sim-led,
+        .sim-wireframe .sim-led-back,
+        .sim-wireframe .sim-head,
+        .sim-wireframe .sim-theme,
+        .sim-wireframe .sim-button-group,
+        .sim-wireframe .sim-button-label,
+        .sim-wireframe .sim-button,
+        .sim-wireframe .sim-text-pin
+        {
+            visibility: hidden;
+        }
+        .sim-wireframe .sim-label
+        {
+            stroke: none;
+            fill: #777;
+        }
+        .sim-wireframe .sim-board {
+            stroke-width: 2px;
+        }
+        *:focus {
+            outline: none;
+        }
+        *:focus .sim-button-outer,
+        .sim-pin:focus,
+        .sim-thermometer:focus,
+        .sim-shake:focus,
+        .sim-light-level-button:focus {
+            stroke: #4D90FE;
+            stroke-width: 5px !important;
+        }
+        .no-drag, .sim-text, .sim-text-pin {
+            user-drag: none;
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-drag: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+    </style>
+		<defs>
+			<filter id="ledglow" x="-75%" y="-75%" width="300%" height="300%">
+				<feMorphology operator="dilate" radius="4" in="SourceAlpha" result="thicken"></feMorphology>
+				<feGaussianBlur stdDeviation="5" in="thicken" result="blurred"></feGaussianBlur>
+				<feFlood flood-color="rgb(255, 17, 77)" result="glowColor"></feFlood>
+				<feComposite in="glowColor" in2="blurred" operator="in" result="ledglow_colored"></feComposite>
+				<feMerge>
+					<feMergeNode in="ledglow_colored"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode>
+				</feMerge>
+			</filter>
+			<filter id="filterglow" x="-5%" y="-5%" width="120%" height="120%">
+				<feGaussianBlur stdDeviation="5" result="glow"></feGaussianBlur>
+				<feMerge>
+					<feMergeNode in="glow"></feMergeNode>
+					<feMergeNode in="glow"></feMergeNode>
+					<feMergeNode in="glow"></feMergeNode>
+				</feMerge>
+			</filter>
+			<linearGradient id="gradient-pin-0" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-1" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-2" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-3" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-4" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-5" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-6" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-7" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-8" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-9" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-10" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-11" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-12" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-13" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-14" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-15" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-16" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-17" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-18" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-19" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-20" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-21" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-22" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-23" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+			<linearGradient id="gradient-pin-24" x1="0%" y1="0%" x2="0%" y2="100%">
+				<stop offset="0%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(212, 175, 55);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+				<stop offset="100%" style="stop-color: rgb(255, 85, 0);"></stop>
+			</linearGradient>
+		</defs>
+		<g>
+			<path class="sim-board" d="M498,31.9C498,14.3,483.7,0,466.1,0H31.9C14.3,0,0,14.3,0,31.9v342.2C0,391.7,14.3,406,31.9,406h434.2c17.6,0,31.9-14.3,31.9-31.9V31.9z M14.3,206.7c-2.7,0-4.8-2.2-4.8-4.8c0-2.7,2.2-4.8,4.8-4.8c2.7,0,4.8,2.2,4.8,4.8C19.2,204.6,17,206.7,14.3,206.7z M486.2,206.7c-2.7,0-4.8-2.2-4.8-4.8c0-2.72.2-4.8,4.8-4.8c2.7,0,4.8,2.2,4.8,4.8C491,204.6,488.8,206.7,486.2,206.7z"></path>
+			<path class="sim-display" d="M333.8,310.3H165.9c-8.3,0-15-6.7-15-15V127.5c0-8.3,6.7-15,15-15h167.8c8.3,0,15,6.7,15,15v167.8C348.8,303.6,342.1,310.3,333.8,310.3z" style="fill: rgb(0, 0, 0);"></path>
+			<polygon class="sim-theme" points="115,56.7 173.1,0 115,0" style="fill: rgb(58, 255, 179);"></polygon>
+			<path class="sim-theme" d="M114.2,0H25.9C12.1,2.1,0,13.3,0,27.7v83.9L114.2,0z" style="fill: rgb(58, 255, 179);"></path>
+			<polygon class="sim-theme" points="173,27.9 202.5,0 173,0" style="fill: rgb(58, 255, 179);"></polygon>
+			<polygon class="sim-theme" points="54.1,242.4 54.1,274.1 22.4,274.1" style="fill: rgb(58, 255, 179);"></polygon>
+			<polygon class="sim-theme" points="446.2,164.6 446.2,132.8 477.9,132.8" style="fill: rgb(58, 255, 179);"></polygon>
+			<rect class="sim-led-back" x="154" y="113" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="152" y="111" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(0,0)</title></rect>
+			<rect class="sim-led-back" x="200" y="113" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="198" y="111" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(1,0)</title></rect>
+			<rect class="sim-led-back" x="246" y="113" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="244" y="111" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(2,0)</title></rect>
+			<rect class="sim-led-back" x="292" y="113" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="290" y="111" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(3,0)</title></rect>
+			<rect class="sim-led-back" x="338" y="113" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="336" y="111" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(4,0)</title></rect>
+			<rect class="sim-led-back" x="154" y="157" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="152" y="155" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(0,1)</title></rect>
+			<rect class="sim-led-back" x="200" y="157" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="198" y="155" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(1,1)</title></rect>
+			<rect class="sim-led-back" x="246" y="157" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="244" y="155" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(2,1)</title></rect>
+			<rect class="sim-led-back" x="292" y="157" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="290" y="155" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(3,1)</title></rect>
+			<rect class="sim-led-back" x="338" y="157" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="336" y="155" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(4,1)</title></rect>
+			<rect class="sim-led-back" x="154" y="201" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="152" y="199" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(0,2)</title></rect>
+			<rect class="sim-led-back" x="200" y="201" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="198" y="199" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(1,2)</title></rect>
+			<rect class="sim-led-back" x="246" y="201" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="244" y="199" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(2,2)</title></rect>
+			<rect class="sim-led-back" x="292" y="201" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="290" y="199" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(3,2)</title></rect>
+			<rect class="sim-led-back" x="338" y="201" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="336" y="199" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(4,2)</title></rect>
+			<rect class="sim-led-back" x="154" y="245" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="152" y="243" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(0,3)</title></rect>
+			<rect class="sim-led-back" x="200" y="245" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="198" y="243" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(1,3)</title></rect>
+			<rect class="sim-led-back" x="246" y="245" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="244" y="243" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(2,3)</title></rect>
+			<rect class="sim-led-back" x="292" y="245" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="290" y="243" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(3,3)</title></rect>
+			<rect class="sim-led-back" x="338" y="245" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="336" y="243" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(4,3)</title></rect>
+			<rect class="sim-led-back" x="154" y="289" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="152" y="287" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(0,4)</title></rect>
+			<rect class="sim-led-back" x="200" y="289" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="198" y="287" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(1,4)</title></rect>
+			<rect class="sim-led-back" x="246" y="289" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="244" y="287" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 1; transform-box: fill-box; transform-origin: 50% 50% 0px; transform: scale(1);"><title>(2,4)</title></rect>
+			<rect class="sim-led-back" x="292" y="289" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="290" y="287" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(3,4)</title></rect>
+			<rect class="sim-led-back" x="338" y="289" width="10" height="20" rx="2" ry="2" style="fill: rgb(32, 32, 32);"></rect>
+			<rect class="sim-led" x="336" y="287" width="14" height="24" rx="3" ry="3" style="filter: url(&quot;#ledglow&quot;); fill: rgb(255, 127, 127); opacity: 0;"><title>(4,4)</title></rect>
+			<g class="sim-head no-drag">
+				<circle cx="258" cy="75" r="100" fill="transparent"></circle>
+				<path class="sim-theme sim-theme-glow" d="M269.9,50.2L269.9,50.2l-39.5,0v0c-14.1,0.1-24.6,10.7-24.6,24.8c0,13.9,10.4,24.4,24.3,24.7v0h39.6c14.2,0,24.8-10.6,24.8-24.7C294.5,61,284,50.3,269.9,50.2 M269.7,89.2L269.7,89.2l-39.3,0c-7.7-0.1-14-6.4-14-14.2c0-7.8,6.4-14.2,14.2-14.2h39.1c7.8,0,14.2,6.4,14.2,14.2C283.9,82.9,277.5,89.2,269.7,89.2" style="fill: rgb(58, 255, 179);"></path>
+				<path class="sim-theme sim-theme-glow" d="M230.6,69.7c-2.9,0-5.3,2.4-5.3,5.3c0,2.9,2.4,5.3,5.3,5.3c2.9,0,5.3-2.4,5.3-5.3C235.9,72.1,233.5,69.7,230.6,69.7" style="fill: rgb(58, 255, 179);"></path><path class="sim-theme sim-theme-glow" d="M269.7,80.3c2.9,0,5.3-2.4,5.3-5.3c0-2.9-2.4-5.3-5.3-5.3c-2.9,0-5.3,2.4-5.3,5.3C264.4,77.9,266.8,80.3,269.7,80.3" style="fill: rgb(58, 255, 179);"></path>
+			</g>
+			<text x="310" y="100" class="sim-text"></text>
+			<path class="sim-pin sim-pin-touch" d="M16.5,341.2c0,0.4-0.1,0.9-0.1,1.3v60.7c4.1,1.7,8.6,2.7,12.9,2.7h34.4v-64.7h0.3c0,0,0-0.1,0-0.1c0-13-10.6-23.6-23.7-23.6C27.2,317.6,16.5,328.1,16.5,341.2z M21.2,341.6c0-10.7,8.7-19.3,19.3-19.3c10.7,0,19.3,8.7,19.3,19.3c0,10.7-8.6,19.3-19.3,19.3C29.9,360.9,21.2,352.2,21.2,341.6z" fill="url(#gradient-pin-0)">
+				<title>P0, ANALOG IN</title>
+			</path>
+			<path class="sim-pin sim-pin-touch" d="M139.1,317.3c-12.8,0-22.1,10.3-23.1,23.1V406h46.2v-65.6C162.2,327.7,151.9,317.3,139.1,317.3zM139.3,360.1c-10.7,0-19.3-8.6-19.3-19.3c0-10.7,8.6-19.3,19.3-19.3c10.7,0,19.3,8.7,19.3,19.3C158.6,351.5,150,360.1,139.3,360.1z" fill="url(#gradient-pin-1)">
+				<title>P1, ANALOG IN</title>
+			</path>
+			<path class="sim-pin sim-pin-touch" d="M249,317.3c-12.8,0-22.1,10.3-23.1,23.1V406h46.2v-65.6C272.1,327.7,261.8,317.3,249,317.3z M249.4,360.1c-10.7,0-19.3-8.6-19.3-19.3c0-10.7,8.6-19.3,19.3-19.3c10.7,0,19.3,8.7,19.3,19.3C268.7,351.5,260.1,360.1,249.4,360.1z" fill="url(#gradient-pin-2)">
+				<title>P2, ANALOG IN</title>
+			</path>
+			<path class="sim-pin" d="M0,357.7v19.2c0,10.8,6.2,20.2,14.4,25.2v-44.4H0z" fill="url(#gradient-pin-3)">
+				<title>P3, ANALOG IN, LED Col 1</title>
+			</path>
+			<rect x="66.7" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-4)">
+				<title>P4, ANALOG IN, LED Col 2</title>
+			</rect>
+			<rect x="79.1" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-5)">
+				<title>P5, BUTTON A</title>
+			</rect>
+			<rect x="91.4" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-6)">
+				<title>P6, LED Col 9</title>
+			</rect>
+			<rect x="103.7" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-7)">
+				<title>P7, LED Col 8</title>
+			</rect>
+			<rect x="164.3" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-8)">
+				<title>P8</title>
+			</rect>
+			<rect x="176.6" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-9)">
+				<title>P9, LED Col 7</title>
+			</rect>
+			<rect x="188.9" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-10)">
+				<title>P10, ANALOG IN, LED Col 3</title>
+			</rect>
+			<rect x="201.3" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-11)">
+			<title>P11, BUTTON B</title>
+			</rect><rect x="213.6" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-12)">
+				<title>P12, RESERVED ACCESSIBILITY</title>
+			</rect>
+			<rect x="275.2" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-13)">
+				<title>P13, SPI - SCK</title>
+			</rect>
+			<rect x="287.5" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-14)">
+				<title>P14, SPI - MISO</title>
+			</rect>
+			<rect x="299.8" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-15)">
+				<title>P15, SPI - MOSI</title>
+			</rect>
+			<rect x="312.1" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-16)">
+				<title>P16, SPI - Chip Select</title>
+			</rect>
+			<rect x="324.5" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-17)">
+				<title>P17, +3v3</title>
+			</rect>
+			<rect x="385.1" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-18)">
+				<title>P18, +3v3</title>
+			</rect>
+			<rect x="397.4" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-19)">
+				<title>P19, I2C - SCL</title>
+			</rect>
+			<rect x="409.7" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-20)">
+				<title>P20, I2C - SDA</title>
+			</rect>
+			<rect x="422" y="356.7" width="10" height="50" class="sim-pin" fill="url(#gradient-pin-21)">
+				<title>GND</title>
+			</rect>
+			<path class="sim-pin" d="M483.6,402c8.2-5,14.4-14.4,14.4-25.1v-19.2h-14.4V402z" fill="url(#gradient-pin-22)">
+				<title>GND</title>
+			</path>
+			<path class="sim-pin" d="M359.9,317.3c-12.8,0-22.1,10.3-23.1,23.1V406H383v-65.6C383,327.7,372.7,317.3,359.9,317.3z M360,360.1c-10.7,0-19.3-8.6-19.3-19.3c0-10.7,8.6-19.3,19.3-19.3c10.7,0,19.3,8.7,19.3,19.3C379.3,351.5,370.7,360.1,360,360.1z" fill="url(#gradient-pin-23)">
+				<title>+3v3</title>
+			</path>
+			<path class="sim-pin" d="M458,317.6c-13,0-23.6,10.6-23.6,23.6c0,0,0,0.1,0,0.1h0V406H469c4.3,0,8.4-1,12.6-2.7v-60.7c0-0.4,0-0.9,0-1.3C481.6,328.1,471,317.6,458,317.6z M457.8,360.9c-10.7,0-19.3-8.6-19.3-19.3c0-10.7,8.6-19.3,19.3-19.3c10.7,0,19.3,8.7,19.3,19.3C477.1,352.2,468.4,360.9,457.8,360.9z" fill="url(#gradient-pin-24)">
+				<title>GND</title>
+			</path>
+			<text class="sim-text-pin" x="67" y="345"></text>
+			<text class="sim-text-pin" x="165" y="345"></text>
+			<text class="sim-text-pin" x="275" y="345"></text>
+			<g class="sim-button-group" focusable="true" tabindex="0" role="button" aria-label="A" style="fill: rgb(151, 151, 151);">
+				<rect class="sim-button-outer" x="25.9" y="176.4" rx="4" ry="4" width="56.2" height="56.2"></rect>
+				<circle class="sim-button-nut" cx="35.9" cy="186.4" r="6"></circle>
+				<circle class="sim-button-nut" cx="35.9" cy="222.60000000000002" r="6"></circle>
+				<circle class="sim-button-nut" cx="72.1" cy="222.60000000000002" r="6"></circle>
+				<circle class="sim-button-nut" cx="72.1" cy="186.4" r="6"></circle>
+			</g>
+			<path class="sim-button" d="M69.7,203.5c0,8.7-7,15.7-15.7,15.7s-15.7-7-15.7-15.7c0-8.7,7-15.7,15.7-15.7S69.7,194.9,69.7,203.5" style="fill: rgb(0, 0, 0);"></path>
+			<g class="sim-button-group" focusable="true" tabindex="0" role="button" aria-label="B" style="fill: rgb(151, 151, 151);">
+				<rect class="sim-button-outer" x="418.1" y="176.4" rx="4" ry="4" width="56.2" height="56.2"></rect>
+				<circle class="sim-button-nut" cx="428.1" cy="186.4" r="6"></circle>
+				<circle class="sim-button-nut" cx="428.1" cy="222.60000000000002" r="6"></circle>
+				<circle class="sim-button-nut" cx="464.3" cy="222.60000000000002" r="6"></circle>
+				<circle class="sim-button-nut" cx="464.3" cy="186.4" r="6"></circle>
+			</g>
+			<path class="sim-button" d="M461.9,203.5c0,8.7-7,15.7-15.7,15.7c-8.7,0-15.7-7-15.7-15.7c0-8.7,7-15.7,15.7-15.7C454.9,187.8,461.9,194.9,461.9,203.5" style="fill: rgb(0, 0, 0);"></path>
+			<g class="sim-button-group" focusable="true" tabindex="0" role="button" aria-label="A+B" style="visibility: hidden; fill: rgb(51, 51, 51);">
+				<rect class="sim-button-outer" x="417" y="250" rx="4" ry="4" width="56.2" height="56.2"></rect>
+				<circle class="sim-button-nut" cx="427" cy="260" r="6"></circle>
+				<circle class="sim-button-nut" cx="427" cy="296.2" r="6"></circle>
+				<circle class="sim-button-nut" cx="463.2" cy="296.2" r="6"></circle>
+				<circle class="sim-button-nut" cx="463.2" cy="260" r="6"></circle>
+			</g>
+			<circle class="sim-button" cx="446" cy="278" r="16.5" style="visibility: hidden; fill: rgb(0, 0, 0);"></circle>
+			<path class="sim-label" d="M35.7,376.4c0-2.8,2.1-5.1,5.5-5.1c3.3,0,5.5,2.4,5.5,5.1v4.7c0,2.8-2.2,5.1-5.5,5.1c-3.3,0-5.5-2.4-5.5-5.1V376.4zM43.3,376.4c0-1.3-0.8-2.3-2.2-2.3c-1.3,0-2.1,1.1-2.1,2.3v4.7c0,1.2,0.8,2.3,2.1,2.3c1.3,0,2.2-1.1,2.2-2.3V376.4z"></path>
+			<path class="sim-label" d="M136.2,374.1c2.8,0,3.4-0.8,3.4-2.5h2.9v14.3h-3.4v-9.5h-3V374.1z"></path><path class="sim-label" d="M248.6,378.5c1.7-1,3-1.7,3-3.1c0-1.1-0.7-1.6-1.6-1.6c-1,0-1.8,0.6-1.8,2.1h-3.3c0-2.6,1.8-4.6,5.1-4.6c2.6,0,4.9,1.3,4.9,4.3c0,2.4-2.3,3.9-3.8,4.7c-2,1.3-2.5,1.8-2.5,2.9h6.1v2.7h-10C244.8,381.2,246.4,379.9,248.6,378.5z"></path>
+			<path class="sim-button-label" d="M48.1,270.9l-0.6-1.7h-5.1l-0.6,1.7h-3.5l5.1-14.3h3.1l5.2,14.3H48.1z M45,260.7l-1.8,5.9h3.5L45,260.7z"></path>
+			<path class="sim-button-label" d="M449.1,135.8h5.9c3.9,0,4.7,2.4,4.7,3.9c0,1.8-1.4,2.9-2.5,3.2c0.9,0,2.6,1.1,2.6,3.3c0,1.5-0.8,4-4.7,4h-6V135.8zM454.4,141.7c1.6,0,2-1,2-1.7c0-0.6-0.3-1.7-2-1.7h-2v3.4H454.4z M452.4,144.1v3.5h2.1c1.6,0,2-1,2-1.8c0-0.7-0.4-1.8-2-1.8H452.4z"></path>
+			<path class="sim-label" d="M352.1,381.1c0,1.6,0.9,2.5,2.2,2.5c1.2,0,1.9-0.9,1.9-1.9c0-1.2-0.6-2-2.1-2h-1.3v-2.6h1.3c1.5,0,1.9-0.7,1.9-1.8c0-1.1-0.7-1.6-1.6-1.6c-1.4,0-1.8,0.8-1.8,2.1h-3.3c0-2.4,1.5-4.6,5.1-4.6c2.6,0,5,1.3,5,4c0,1.6-1,2.8-2.1,3.2c1.3,0.5,2.3,1.6,2.3,3.5c0,2.7-2.4,4.3-5.2,4.3c-3.5,0-5.5-2.1-5.5-5.1H352.1z"></path>
+			<path class="sim-label" d="M368.5,385.9h-3.1l-5.1-14.3h3.5l3.1,10.1l3.1-10.1h3.6L368.5,385.9z"></path>
+			<path class="sim-label" d="M444.4,378.3h7.4v2.5h-1.5c-0.6,3.3-3,5.5-7.1,5.5c-4.8,0-7.5-3.5-7.5-7.5c0-3.9,2.8-7.5,7.5-7.5c3.8,0,6.4,2.3,6.6,5h-3.5c-0.2-1.1-1.4-2.2-3.1-2.2c-2.7,0-4.1,2.3-4.1,4.7c0,2.5,1.4,4.7,4.4,4.7c2,0,3.2-1.2,3.4-2.7h-2.5V378.3z"></path>
+			<path class="sim-label" d="M461.4,380.9v-9.3h3.3v14.3h-3.5l-5.2-9.2v9.2h-3.3v-14.3h3.5L461.4,380.9z"></path>
+			<path class="sim-label" d="M472.7,371.6c4.8,0,7.5,3.5,7.5,7.2s-2.7,7.2-7.5,7.2h-5.3v-14.3H472.7z M470.8,374.4v8.6h1.8c2.7,0,4.2-2.1,4.2-4.3s-1.6-4.3-4.2-4.3H470.8z"></path>
+		</g>
+		<g></g>
+		<g></g>
+	</svg>
+
 <p> <%= userID %> </p>
 <select id="exerciselist" onchange="changeExercise(this)"></select>
 <p id=exerciseStatement></p>
 
 <div id="main">
     <div id="blocklyDiv"></div>
-    <textarea id="pythonArea" disabled></textarea>
+	<textarea id="pythonArea" disabled></textarea>
+	<!-- <table>	 -->
+		<!-- <tr> -->
+			<!-- <th id="00">0</th> -->
+			<!-- <th id="01">0</th> -->
+			<!-- <th id="02">0</th> -->
+			<!-- <th id="03">0</th> -->
+			<!-- <th id="04">0</th> -->
+		<!-- </tr> -->
+		<!-- <tr> -->
+			<!-- <th id="10">0</th> -->
+			<!-- <th id="11">0</th> -->
+			<!-- <th id="12">0</th> -->
+			<!-- <th id="13">0</th> -->
+			<!-- <th id="14">0</th> -->
+		<!-- </tr> -->
+		<!-- <tr> -->
+			<!-- <th id="20">0</th> -->
+			<!-- <th id="21">0</th> -->
+			<!-- <th id="22">0</th> -->
+			<!-- <th id="23">0</th> -->
+			<!-- <th id="24">0</th> -->
+		<!-- </tr> -->
+		<!-- <tr> -->
+			<!-- <th id="30">0</th> -->
+			<!-- <th id="31">0</th> -->
+			<!-- <th id="32">0</th> -->
+			<!-- <th id="33">0</th> -->
+			<!-- <th id="34">0</th> -->
+		<!-- </tr> -->
+		<!-- <tr> -->
+			<!-- <th id="40">0</th> -->
+			<!-- <th id="41">0</th> -->
+			<!-- <th id="42">0</th> -->
+			<!-- <th id="43">0</th> -->
+			<!-- <th id="44">0</th> -->
+		<!-- </tr>		 -->
+	<!-- </table> -->
 </div>
 
 <button onclick="startDownload()"> click me</button>
 <xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">
-	<category name="Exercise" id="exerciseBlock" colour="#5C8183">
-		<block type="logic_boolean" class="exerciseBlock"></block>
-		<block type="controls_ifelse" class="exerciseBlock"></block>
-	</category>
     <category name="Logic" colour="#5C81A6">
 		<block type="logic_boolean"></block>
         <block type="controls_if"></block>
 		<block type="controls_ifelse"></block>
 		<block type="logic_negate"></block>
-        <block type="logic_compare">
-            <field name="OP">EQ</field>
-        </block>
-        <block type="logic_operation">
-            <field name="OP">AND</field>
-        </block>
+        <block type="logic_compare"></block>
+        <block type="logic_operation"></block>
     </category>
     <category name="Loops" colour="#5CA65C">
-        <block type="controls_repeat_ext">
-            <value name="TIMES">
-            </value>
-        </block>
+        <block type="controls_repeat_ext"></block>
         <block type="controls_while"></block>
-        <block type="controls_for">
-            <field name="VAR" id="PO(Nz1Dp]zeuWcA_A8Ch" variabletype="">i</field>
-            <value name="FROM">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-            <value name="TO">
-                <shadow type="math_number">
-                    <field name="NUM">10</field>
-                </shadow>
-            </value>
-            <value name="BY">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="controls_flow_statements">
-            <field name="FLOW">BREAK</field>
-        </block>
+        <block type="controls_for"></block>
+        <block type="controls_flow_statements"></block>
     </category>
     <category name="Math" colour="#5C68A6">
-        <block type="math_number">
-            <field name="NUM">0</field>
-        </block>
-        <block type="math_arithmetic">
-            <field name="OP">ADD</field>
-            <value name="A">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-            <value name="B">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_single">
-            <field name="OP">ROOT</field>
-            <value name="NUM">
-                <shadow type="math_number">
-                    <field name="NUM">9</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_trig">
-            <field name="OP">SIN</field>
-            <value name="NUM">
-                <shadow type="math_number">
-                    <field name="NUM">45</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_constant">
-            <field name="CONSTANT">PI</field>
-        </block>
-        <block type="math_number_property">
-            <mutation divisor_input="false"></mutation>
-            <field name="PROPERTY">EVEN</field>
-            <value name="NUMBER_TO_CHECK">
-                <shadow type="math_number">
-                    <field name="NUM">0</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_number">
-            <field name="NUM">0</field>
-        </block>
-        <block type="math_on_list">
-            <mutation op="SUM"></mutation>
-            <field name="OP">SUM</field>
-        </block>
-        <block type="math_modulo">
-            <value name="DIVIDEND">
-                <shadow type="math_number">
-                    <field name="NUM">64</field>
-                </shadow>
-            </value>
-            <value name="DIVISOR">
-                <shadow type="math_number">
-                    <field name="NUM">10</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_constrain">
-            <value name="VALUE">
-                <shadow type="math_number">
-                    <field name="NUM">50</field>
-                </shadow>
-            </value>
-            <value name="LOW">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-            <value name="HIGH">
-                <shadow type="math_number">
-                    <field name="NUM">100</field>
-                </shadow>
-            </value>
-        </block>
-        <block type="math_random_int">
-            <value name="FROM">
-                <shadow type="math_number">
-                    <field name="NUM">1</field>
-                </shadow>
-            </value>
-            <value name="TO">
-                <shadow type="math_number">
-                    <field name="NUM">100</field>
-                </shadow>
-            </value>
-        </block>
+        <block type="math_number"></block>
+        <block type="math_arithmetic"></block>
+        <block type="math_single"></block>
+        <block type="math_constant"></block>
+        <block type="math_number_property"></block>
+        <block type="math_modulo"></block>
+        <block type="math_random_int"></block>
         <block type="math_random_float"></block>
     </category>
     <sep></sep>
     <category name="Variables" colour="#A65C81" custom="VARIABLE"></category>
     <category name="Basic" colour="#6d5ba5">
-        <block type="show_number">
-            <field name="VALUE">0</field>
-        </block>
-        <block type="show_leds">
-            <field name="LED1_1">FALSE</field>
-            <field name="LED1_2">FALSE</field>
-            <field name="LED1_3">FALSE</field>
-            <field name="LED1_4">FALSE</field>
-            <field name="LED1_5">FALSE</field>
-            <field name="LED2_1">FALSE</field>
-            <field name="LED2_2">FALSE</field>
-            <field name="LED2_3">FALSE</field>
-            <field name="LED2_4">FALSE</field>
-            <field name="LED2_5">FALSE</field>
-            <field name="LED3_1">FALSE</field>
-            <field name="LED3_2">FALSE</field>
-            <field name="LED3_3">FALSE</field>
-            <field name="LED3_4">FALSE</field>
-            <field name="LED3_5">FALSE</field>
-            <field name="LED4_1">FALSE</field>
-            <field name="LED4_2">FALSE</field>
-            <field name="LED4_3">FALSE</field>
-            <field name="LED4_4">FALSE</field>
-            <field name="LED4_5">FALSE</field>
-            <field name="LED5_1">FALSE</field>
-            <field name="LED5_2">FALSE</field>
-            <field name="LED5_3">FALSE</field>
-            <field name="LED5_4">FALSE</field>
-            <field name="LED5_5">FALSE</field>
-        </block>
-        <block type="show_string">
-            <field name="VALUE">default</field>
-        </block>
-        <block type="pause">
-            <field name="VALUE">100</field>
-        </block>
-        <block type="show_icon" colour="#6d5ba5">
-            <field name="ICON">HEART</field>
-        </block>
+        <block type="show_number"></block>
+        <block type="show_leds"></block>
+        <block type="show_string"></block>
+        <block type="pause"></block>
+        <block type="show_icon"></block>
     </category>
 </xml>
 
@@ -212,7 +611,7 @@
 		toolbox: document.getElementById('toolbox')
 	});
 	
-	console.log(document.querySelector("#exerciseBlock").childNodes);
+	var SET_INTERVAL = 500;
 	
 	Blockly.ContextMenu= false; /// provoque une erreur dans la console pour chaques cliq droit, ignorer?
 	
@@ -248,7 +647,7 @@
 	}
 	
 	// Send an xmlhttprequest to the server when the exercise is changed
-	function changeExercise(obj){ /// a fixer
+	function changeExercise(obj){
 	
 		var json = {};
 		json.workspacexml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
@@ -270,11 +669,12 @@
 			   loadXmlToWorkspace(xhttp.responseText);
 			}
 		};
-		var url = "http://localhost:3000/pageChange/?currentExerciseId="+ obj[obj.selectedIndex].value;
+		var url = "/pageChange/?currentExerciseId="+ obj[obj.selectedIndex].value;
 		xhttp.open("GET",url, true);
 		xhttp.send();
 		console.log(json.workspacexml);
-		postrequest("http://localhost:3000/currentExercise",json);
+		console.log(json);
+		postrequest("/currentExercise",json);
 	}
 	
 	var mousePosition = {};
@@ -297,7 +697,7 @@
 			mousePosition.userID = <%- userID %> ;
 			mousePosition.currentExerciseID = exerciselist[exerciselist.selectedIndex].value;
 			//console.log(mousePosition);
-			postrequest("http://localhost:3000/mousePosition",mousePosition);
+			postrequest("/mousePosition",mousePosition);
 		}
 		setTimeout(sendMousePos,100);
 	}
@@ -308,50 +708,52 @@
 		var json;
 		json = primaryEvent.toJson();
 		var url;
+		document.getElementById('pythonArea').value ="Python : \n" + Blockly.Python.workspaceToCode(workspace) + "\n---------------------- \nJavascript : \n" + Blockly.JavaScript.workspaceToCode(workspace);
+		
 		switch(primaryEvent.type){ 
 			// ui event : category, click and select
 			case "ui":
-				url = "http://localhost:3000/categoryEvent";
+				url = "/categoryEvent";
 				json.group = (json.group || null);
 				json.type += json.element;
 				json.newValue = ((json.newValue || json.blockId) || null );
 				break;
 			// create event : when a block is created
 			case "create":
-				url = "http://localhost:3000/createBlock";
+				url = "/createBlock";
 				json.xml = json.xml.replace(' xmlns="http://www.w3.org/1999/xhtml"','');
 				break;
 			// move event : when a block is moved
 			// combine event : when a block has a new parent
 			case "move":
-				url = "http://localhost:3000/moveBlock";
+				url = "/moveBlock";
 				if (primaryEvent.newParentId != null){
 					json.type = "combine";
 					json.newInputName = (json.newInputName || null);	
-					url = "http://localhost:3000/combineBlock";
+					url = "/combineBlock";
 					console.log(url);
 				}
 				break;
 			// change event : when a block is changed
 			case "change":
-				url = "http://localhost:3000/changeBlock";
+				url = "/changeBlock";
 				break;
 			// delete event : when a block is deleted
 			case "delete":
-				url = "http://localhost:3000/deleteBlock";
+				url = "/deleteBlock";
 				break;
 			// when a new variable is created	
 			case "var_create":
-				url = "http://localhost:3000/varEvent";
+				url = "/varEvent";
 				json.group = null;
 				break;
 			// when a variable is removed
 			case "var_delete":
-				url = "http://localhost:3000/varEvent";
+				url = "/varEvent";
 				break;
 			// when a variable is renamed
 			case "var_rename":
-				url = "http://localhost:3000/varEvent";
+				url = "/varEvent";
 				json.varName = json.newName;
 				console.log("var_rename");
 				break;
@@ -462,14 +864,28 @@
 		}
 	};
 	
+	var ledMatrix = getLedMatrix();
+	console.log(ledMatrix);
+	function getLedMatrix(){
+		var led =[];
+		var temp;
+		for (var i=0;i<5;i++){
+			temp =[]
+			for (var j=0;j<5;j++){
+				temp.push(document.querySelectorAll('.sim-led')[i*5+j]);
+			}
+			led.push(temp);
+		}
+		return led;
+	}
 	
-	/* // ALL the following code is for the simulation - May not be used
+	// ALL the following code is for the simulation - May not be used
 	var led = [];
-	//showNumber();
+	showNumber();
 	function showNumber(){
 		if (!led[0])
 		{
-			setTimeout(showNumber,5000);
+			setTimeout(showNumber,SET_INTERVAL*5);
 			console.log(null);
 			return null;
 		}
@@ -477,8 +893,8 @@
 		{		
 			var temp = led[0];
 			led.shift();
-			console.log(temp);
-			setTimeout(showNumber,5000);
+			show(temp);
+			setTimeout(showNumber,SET_INTERVAL*5);
 			return temp;
 		}
 		var temp = [];
@@ -487,9 +903,33 @@
 			temp.push(led[0][i].slice(0,5));
 			led[0][i].shift();		
 		}
-		console.log(temp);
-		setTimeout(showNumber,1000);
+		//console.log(temp);
+		show(temp);
+		setTimeout(showNumber,SET_INTERVAL);
 		return temp;
+	}
+	
+	function show(tab){ /// test if not number or if number is infinity
+	console.log("show");
+	console.log("show",tab);
+		for (var i=0;i<tab.length;i++){
+			for (var j=0;j<tab.length;j++){
+				if (tab[i][j] == 1)
+				{
+					ledMatrix[i][j].style.opacity = 1+"";
+					ledMatrix[i][j].style.transformBox ='fill-box';
+					ledMatrix[i][j].style.transformOrigin =' 50% 50%';
+					ledMatrix[i][j].style.transform = "scale("+1+")";
+				}
+				else
+				{
+					ledMatrix[i][j].style.opacity = 0+"";
+				}	
+			}
+		
+		}
+	
+	
 	}
 	
 	function addNumber(i){
@@ -505,7 +945,7 @@
 			  [[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,0,0,0,0]], //7
 			  [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]], //8
 			  [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[0,0,1,0,0],[0,1,0,0,0]]]; //9
-
+			  
 	function intToArray(val){
 		var temp;
 		var array =[[],[],[],[],[]];
@@ -517,7 +957,6 @@
 		}
 		return array;
 	}
-	*/
 </script>
 </body>
 </html>

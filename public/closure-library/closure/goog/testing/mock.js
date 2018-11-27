@@ -39,8 +39,11 @@ goog.setTestOnly('goog.testing.Mock');
 goog.provide('goog.testing.Mock');
 goog.provide('goog.testing.MockExpectation');
 
+goog.require('goog.Promise');
 goog.require('goog.array');
+goog.require('goog.asserts');
 goog.require('goog.object');
+goog.require('goog.promise.Resolver');
 goog.require('goog.testing.JsUnitException');
 goog.require('goog.testing.MockInterface');
 goog.require('goog.testing.mockmatchers');
@@ -193,6 +196,9 @@ goog.testing.Mock = function(
     this.$initializeFunctions_(objectToMock);
   }
   this.$argumentListVerifiers_ = {};
+
+  /** @protected {?goog.promise.Resolver<undefined>} */
+  this.waitingForExpectations = null;
 };
 
 
@@ -307,7 +313,7 @@ goog.testing.Mock.prototype.$initializeFunctions_ = function(objectToMock) {
 
   // The non enumerable properties are added if they override the ones in the
   // Object prototype. This is due to the fact that IE8 does not enumerate any
-  // of the prototype Object functions even when overriden and mocking these is
+  // of the prototype Object functions even when overridden and mocking these is
   // sometimes needed.
   for (var i = 0; i < goog.testing.Mock.OBJECT_PROTOTYPE_FIELDS_.length; i++) {
     var prop = goog.testing.Mock.OBJECT_PROTOTYPE_FIELDS_[i];
@@ -366,7 +372,7 @@ goog.testing.Mock.prototype.$mockMethod = function(name) {
       return this.$recordCall(name, args);
     }
   } catch (ex) {
-    this.$recordAndThrow(ex);
+    this.$recordAndThrow(ex, true /* rethrow */);
   }
 };
 
@@ -543,6 +549,9 @@ goog.testing.Mock.prototype.$reset = function() {
   this.$recording_ = true;
   this.$threwException_ = null;
   delete this.$pendingExpectation;
+  if (this.waitingForExpectations) {
+    this.waitingForExpectations = null;
+  }
 };
 
 
@@ -561,26 +570,62 @@ goog.testing.Mock.prototype.$throwException = function(comment, opt_message) {
 /**
  * Throws an exception and records that an exception was thrown.
  * @param {Object} ex Exception.
+ * @param {boolean=} rethrow True if this exception has already been thrown.  If
+ *     so, we should not report it to TestCase (since it was already reported at
+ *     the original throw). This is necessary to avoid logging it twice, because
+ *     assertThrowsJsUnitException only removes one record.
  * @throws {Object} #ex.
  * @protected
  */
-goog.testing.Mock.prototype.$recordAndThrow = function(ex) {
+goog.testing.Mock.prototype.$recordAndThrow = function(ex, rethrow) {
+  if (this.waitingForExpectations) {
+    this.waitingForExpectations.resolve();
+  }
+  if (this.$recording_) {
+    ex = new goog.testing.JsUnitException(
+        'Threw an exception while in record mode, did you $replay?',
+        ex.toString());
+  }
   // If it's an assert exception, record it.
   if (ex['isJsUnitException']) {
-    var testRunner = goog.global['G_testRunner'];
-    if (testRunner) {
-      var logTestFailureFunction = testRunner['logTestFailure'];
-      if (logTestFailureFunction) {
-        logTestFailureFunction.call(testRunner, ex);
-      }
-    }
-
     if (!this.$threwException_) {
       // Only remember first exception thrown.
       this.$threwException_ = ex;
     }
+
+    // Don't fail if JSUnit isn't loaded.  Instead, the test can catch the error
+    // normally. Other test frameworks won't get automatic failures if assertion
+    // errors are swallowed.
+    var getTestCase =
+        goog.getObjectByName('goog.testing.TestCase.getActiveTestCase');
+    var testCase = getTestCase && getTestCase();
+    if (testCase && !rethrow) {
+      testCase.raiseAssertionException(ex);
+    }
   }
   throw ex;
+};
+
+
+/** @override */
+goog.testing.Mock.prototype.$waitAndVerify = function() {
+  goog.asserts.assert(
+      !this.$recording_,
+      '$waitAndVerify should be called after recording calls.');
+  this.waitingForExpectations = goog.Promise.withResolver();
+  var verify = goog.bind(this.$verify, this);
+  return this.waitingForExpectations.promise.then(function() {
+    return new goog.Promise(function(resolve, reject) {
+      setTimeout(function() {
+        try {
+          verify();
+        } catch (e) {
+          reject(e);
+        }
+        resolve();
+      }, 0);
+    });
+  });
 };
 
 

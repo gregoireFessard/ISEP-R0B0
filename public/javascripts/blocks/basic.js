@@ -14,24 +14,26 @@ Blockly.Blocks.basic.HUE = Blockly.Constants.Basic.HUE;
 
 Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     {
-        "type": "show_number",
-        "message0": "show number %1",
-        "args0": [
-            {
-                "type": "field_number",
-                "name": "VALUE",
-                "value": 0
-            }
-        ],
-        "inputsInline": false,
-        "previousStatement": null,
-        "nextStatement": null,
-        "colour": 205,
-        "tooltip": "Show a number on the display",
-        "helpUrl": ""
-    },{
+		  "type": "show_number",
+		  "message0": "Afficher %1 %2",
+		  "args0": [
+			{
+			  "type": "input_dummy"
+			},
+			{
+			  "type": "input_value",
+			  "name": "NAME",
+			  "check": "Number"
+			}
+		  ],
+		  "inputsInline": true,
+		  "colour": 205,
+		  "tooltip": "",
+		  "helpUrl": ""
+	},
+	{
         "type": "show_leds",
-        "message0": "show leds %1 %2 %3 %4 %5 %6 %7 %8 %9 %10 %11 %12 %13 %14 %15 %16 %17 %18 %19 %20 %21 %22 %23 %24 %25 %26 %27 %28 %29 %30",
+        "message0": "Afficher %1 %2 %3 %4 %5 %6 %7 %8 %9 %10 %11 %12 %13 %14 %15 %16 %17 %18 %19 %20 %21 %22 %23 %24 %25 %26 %27 %28 %29 %30",
         "args0": [
             {
                 "type": "input_dummy"
@@ -183,7 +185,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     },
     {
         "type": "show_string",
-        "message0": "show string %1",
+        "message0": "Afficher le texte: %1",
         "args0": [
             {
                 "type": "field_input",
@@ -200,7 +202,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     },
     {
         "type": "pause",
-        "message0": "pause (ms) %1",
+        "message0": "attendre %1 millisecondes",
         "args0": [
             {
                 "type": "field_number",
@@ -217,7 +219,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     },
     {
         "type": "show_icon",
-        "message0": "show icon %1",
+        "message0": "Afficher %1",
         "args0": [
             {
                 "type": "field_dropdown",
@@ -408,7 +410,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
         ],
         "previousStatement": null,
         "nextStatement": null,
-        "colour": 230,
+        "colour": 205,
         "tooltip": "",
         "helpUrl": ""
     }

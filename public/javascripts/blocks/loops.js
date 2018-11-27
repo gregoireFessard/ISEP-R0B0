@@ -117,29 +117,30 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "helpUrl": "%{BKY_CONTROLS_WHILEUNTIL_HELPURL}",
     "extensions": ["controls_whileUntil_tooltip"]
   },
-  //custome while loop.
+  //custom while loop.
 	{
 	  "type": "controls_while",
-	  "message0": "while %1 %2 %3",
+	  "message0": "tant que %1 %2 faire %3",
 	  "args0": [
 		{
 		  "type": "input_dummy"
 		},
 		{
 		  "type": "input_value",
-		  "name": "BOOL",
+		  "name": "NAME",
 		  "check": "Boolean"
 		},
 		{
 		  "type": "input_statement",
-		  "name": "DO"
+		  "name": "DO",
+		  "align": "CENTRE"
 		}
 	  ],
-	  "inputsInline": false,
-	  "colour": 105,
-	  "tooltip": "",
+	  "inputsInline": true,
+	  "colour": "%{BKY_LOOPS_HUE}",
+	  "tooltip": "tant que c'est vrai, fait l'instruction",
 	  "helpUrl": ""
-	}
+	},
   // Block for 'for' loop.
   {
     "type": "controls_for",
@@ -179,6 +180,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "nextStatement": null,
     "colour": "%{BKY_LOOPS_HUE}",
     "helpUrl": "%{BKY_CONTROLS_FOR_HELPURL}",
+	"tooltip": "fixe la variable a une valeur de début, et répètes les instructions en incrémentant la variable jusqu'a atteindre son maximum";
     "extensions": [
       "contextMenu_newGetVariableBlock",
       "controls_for_tooltip"

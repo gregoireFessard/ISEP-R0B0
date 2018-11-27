@@ -134,6 +134,7 @@ app.get('/', function(req, res){ // a simplifier?
 						}
 						if (result2[0]){
 							req.workspacexml = result2[0].xml;
+							console.log(req.workspacexml);
 						}
 						res.sendFile(path.join(__dirname+ '/'));
 					});
@@ -162,6 +163,7 @@ app.get('/', function(req, res){ // a simplifier?
 							}
 							if (result2[0]){
 								req.workspacexml = result2[0].xml;
+								console.log(req.workspacexml);
 							}
 							res.sendFile(path.join(__dirname+ '/'));
 						});
@@ -180,15 +182,12 @@ app.get('/', function(req, res){ // a simplifier?
 
 
 // Called when changing exercise page
-app.get('/pageChange',function(req,res){ // a refaire
+app.get('/pageChange',function(req,res){
 	// Get the xml code for the workspace of the next page
 	connection.query('SELECT blockid,xml FROM workspacexml WHERE userid=' + mysql.escape(req.session.userID) +' AND exerciseid=' + mysql.escape(parseInt(req.query.currentExerciseId,10)) + " ORDER BY `workspacexml`.`blockid` DESC LIMIT 1",function(err,result){
 		if (err){
 			console.log(err);
 		}
-		console.log("HERE");
-		console.log(result);
-		console.log("new xml for workspace :",result[0]);
 		var ret = null
 		if (result[0])
 			ret = result[0].xml;

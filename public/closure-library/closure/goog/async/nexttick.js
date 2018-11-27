@@ -100,6 +100,7 @@ goog.async.nextTick = function(callback, opt_context, opt_useSetImmediate) {
  * @return {boolean} Whether to use the implementation of setImmediate defined
  *     on Window.
  * @private
+ * @suppress {missingProperties} For "Window.prototype.setImmediate"
  */
 goog.async.nextTick.useSetImmediate_ = function() {
   // Not a browser environment.
@@ -223,7 +224,8 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
       'onreadystatechange' in
           document.createElement(String(goog.dom.TagName.SCRIPT))) {
     return function(cb) {
-      var script = document.createElement(String(goog.dom.TagName.SCRIPT));
+      var script = /** @type {!HTMLScriptElement} */ (
+          document.createElement(String(goog.dom.TagName.SCRIPT)));
       script.onreadystatechange = function() {
         // Clean up and call the callback.
         script.onreadystatechange = null;

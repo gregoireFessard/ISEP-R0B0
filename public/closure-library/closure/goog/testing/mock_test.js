@@ -346,3 +346,46 @@ function testMockEs6ClassStaticMethods() {
   assertEquals('apply', mock.apply());
   mockControl.$verifyAll();
 }
+
+async function testLooseMockAsynchronousVerify() {
+  const mockControl = new goog.testing.MockControl();
+  const looseMock = mockControl.createLooseMock(RealObject);
+  looseMock.a().$returns('a');
+
+  const strictMock = mockControl.createStrictMock(RealObject);
+  strictMock.a().$returns('a');
+
+  mockControl.$replayAll();
+  setTimeout(() => {
+    looseMock.a();
+  }, 0);
+  setTimeout(() => {
+    strictMock.a();
+  }, 0);
+  await mockControl.$waitAndVerifyAll();
+}
+
+function testVerifyWhileInRecord() {
+  const mockControl = new goog.testing.MockControl();
+  const looseMock = mockControl.createLooseMock(RealObject);
+  looseMock.a();
+
+  try {
+    mockControl.$verifyAll();
+  } catch (ex) {
+    assertEquals(
+        'Threw an exception while in record mode, did you $replay?\n' +
+            'Not enough calls to a\n' +
+            'Expected: 1 but was: 0',
+        ex.toString());
+    const getTestCase =
+        goog.getObjectByName('goog.testing.TestCase.getActiveTestCase');
+    const testCase = getTestCase && getTestCase();
+    if (testCase) {
+      testCase.invalidateAssertionException(ex);
+    }
+    return;
+  }
+
+  fail('Expected exception');
+}

@@ -74,6 +74,17 @@ Blockly.JavaScript['controls_whileUntil'] = function(block) {
   return 'while (' + argument0 + ') {\n' + branch + '}\n';
 };
 
+Blockly.JavaScript['controls_while'] = function(block){
+	
+	
+	
+	var branch = Blockly.JavaScript.statementToCode(block,'DO');
+	branch = Blockly.JavaScript.addLoopTrap(branch,block.id);
+	
+	return 'while (' + argument + ') {\n' + branch + '}\n';
+};
+
+
 Blockly.JavaScript['controls_for'] = function(block) {
   // For loop.
   var variable0 = Blockly.JavaScript.variableDB_.getName(

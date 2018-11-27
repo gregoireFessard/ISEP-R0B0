@@ -21,10 +21,12 @@ goog.require('goog.i18n.CompactNumberFormatSymbols_en');
 goog.require('goog.i18n.CompactNumberFormatSymbols_fr');
 goog.require('goog.i18n.NumberFormat');
 goog.require('goog.i18n.NumberFormatSymbols');
-goog.require('goog.i18n.NumberFormatSymbols_ar');
-goog.require('goog.i18n.NumberFormatSymbols_ar_u_nu_latn');
+goog.require('goog.i18n.NumberFormatSymbols_ar_EG');
+goog.require('goog.i18n.NumberFormatSymbols_ar_EG_u_nu_latn');
 goog.require('goog.i18n.NumberFormatSymbols_de');
 goog.require('goog.i18n.NumberFormatSymbols_en');
+goog.require('goog.i18n.NumberFormatSymbols_en_AU');
+goog.require('goog.i18n.NumberFormatSymbols_en_US');
 goog.require('goog.i18n.NumberFormatSymbols_fi');
 goog.require('goog.i18n.NumberFormatSymbols_fr');
 goog.require('goog.i18n.NumberFormatSymbols_pl');
@@ -60,9 +62,30 @@ function tearDown() {
   stubs.reset();
 }
 
-function veryBigNumberCompare(str1, str2) {
-  return str1.length == str2.length &&
-      str1.substring(0, 8) == str2.substring(0, 8);
+/**
+ * Assert that a pair of very large numbers represented as formatted strings are
+ * approximately equal.
+ *
+ * @param {string} str1
+ * @param {string} str2
+ */
+function assertVeryBigNumberEquals(str1, str2) {
+  var digitsAnonymized = function(s) {
+    return s.replace(/[0-9]/g, '#');
+  };
+  var valueOf = function(s) {
+    return parseFloat(s.replace(/[^0-9.e+-]/g, ''));
+  };
+
+  assertEquals(digitsAnonymized(str1), digitsAnonymized(str2));
+
+  var val1 = valueOf(str1);
+  var val2 = valueOf(str2);
+  assertTrue(val1 > 1);
+  assertTrue(val2 > 1);
+
+  // Equal within the limits of JavaScript number precision.
+  assertRoughlyEquals(val1, val2, 1);
 }
 
 function testVeryBigNumber() {
@@ -70,25 +93,23 @@ function testVeryBigNumber() {
   var fmt = new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.CURRENCY);
   str = fmt.format(1785599999999999888888888888888);
   // when comparing big number, various platform have small different in
-  // precision. We have to tolerate that using veryBigNumberCompare.
-  assertTrue(
-      veryBigNumberCompare(
-          '$1,785,599,999,999,999,400,000,000,000,000.00', str));
+  // precision. We have to tolerate that using assertVeryBigNumberEquals.
+  assertVeryBigNumberEquals(
+      '$1,785,599,999,999,999,888,888,888,888,888.00', str);
   str = fmt.format(1.7856E30);
-  assertTrue(
-      veryBigNumberCompare(
-          '$1,785,599,999,999,999,400,000,000,000,000.00', str));
+  assertVeryBigNumberEquals(
+      '$1,785,600,000,000,000,000,000,000,000,000.00', str);
   str = fmt.format(1.3456E20);
-  assertTrue(veryBigNumberCompare('$134,560,000,000,000,000,000.00', str));
+  assertVeryBigNumberEquals('$134,560,000,000,000,000,000.00', str);
 
   fmt = new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.DECIMAL);
   str = fmt.format(1.3456E20);
-  assertTrue(veryBigNumberCompare('134,559,999,999,999,980,000', str));
+  assertVeryBigNumberEquals('134,560,000,000,000,000,000', str);
 
 
   fmt = new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.PERCENT);
   str = fmt.format(1.3456E20);
-  assertTrue(veryBigNumberCompare('13,456,000,000,000,000,000,000%', str));
+  assertVeryBigNumberEquals('13,456,000,000,000,000,000,000%', str);
 
   fmt = new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.SCIENTIFIC);
   str = fmt.format(1.3456E20);
@@ -229,18 +250,18 @@ function testPercentAndPerMillAdvance() {
 
 function testPercentAndPerMillParsing() {
   var implicitFmt = new goog.i18n.NumberFormat('0;(0)');
-  assertEquals(123 / 100, implicitFmt.parse("123%"));
-  assertEquals(-123 / 100, implicitFmt.parse("(123%)"));
-  assertEquals(123 / 1000, implicitFmt.parse("123‰"));
-  assertEquals(-123 / 1000, implicitFmt.parse("(123‰)"));
+  assertEquals(123 / 100, implicitFmt.parse('123%'));
+  assertEquals(-123 / 100, implicitFmt.parse('(123%)'));
+  assertEquals(123 / 1000, implicitFmt.parse('123‰'));
+  assertEquals(-123 / 1000, implicitFmt.parse('(123‰)'));
 
   var explicitFmtPercent = new goog.i18n.NumberFormat('0%;(0%)');
-  assertEquals(123 / 100, explicitFmtPercent.parse("123%"));
-  assertEquals(-123 / 100, explicitFmtPercent.parse("(123%)"));
+  assertEquals(123 / 100, explicitFmtPercent.parse('123%'));
+  assertEquals(-123 / 100, explicitFmtPercent.parse('(123%)'));
 
   var explicitFmtPermill = new goog.i18n.NumberFormat('0‰;(0‰)');
-  assertEquals(123 / 1000, explicitFmtPermill.parse("123‰"));
-  assertEquals(-123 / 1000, explicitFmtPermill.parse("(123‰)"));
+  assertEquals(123 / 1000, explicitFmtPermill.parse('123‰'));
+  assertEquals(-123 / 1000, explicitFmtPermill.parse('(123‰)'));
 }
 
 function testInfinityParse() {
@@ -861,21 +882,21 @@ function testLocaleSwitch() {
 
   var fmt = new goog.i18n.NumberFormat('#,###');
   var str = fmt.format(1234567890);
-  assertEquals('1\u00a0234\u00a0567\u00a0890', str);
+  assertEquals('1\u202F234\u202F567\u202F890', str);
 
   fmt = new goog.i18n.NumberFormat('\u00a4#,##0.00;-\u00a4#,##0.00');
   str = fmt.format(1234.56);
-  assertEquals('\u20AC1\u00a0234,56', str);
+  assertEquals('\u20AC1\u202F234,56', str);
   fmt = new goog.i18n.NumberFormat('\u00a4#,##0.00;(\u00a4#,##0.00)');
   str = fmt.format(-1234.56);
-  assertEquals('(\u20AC1\u00a0234,56)', str);
+  assertEquals('(\u20AC1\u202F234,56)', str);
 
   fmt = new goog.i18n.NumberFormat('\u00a4#,##0.00;-\u00a4#,##0.00', 'SEK');
   str = fmt.format(1234.56);
-  assertEquals('kr1\u00a0234,56', str);
+  assertEquals('kr1\u202F234,56', str);
   fmt = new goog.i18n.NumberFormat('\u00a4#,##0.00;(\u00a4#,##0.00)', 'SEK');
   str = fmt.format(-1234.56);
-  assertEquals('(kr1\u00a0234,56)', str);
+  assertEquals('(kr1\u202F234,56)', str);
 }
 
 function testFrenchParse() {
@@ -937,9 +958,9 @@ function isFirefox363Linux() {
 
 
 function testEnforceAscii() {
-  goog.i18n.NumberFormatSymbols = goog.i18n.NumberFormatSymbols_ar;
+  goog.i18n.NumberFormatSymbols = goog.i18n.NumberFormatSymbols_ar_EG;
   goog.i18n.NumberFormatSymbols_u_nu_latn =
-      goog.i18n.NumberFormatSymbols_ar_u_nu_latn;
+      goog.i18n.NumberFormatSymbols_ar_EG_u_nu_latn;
 
   var fmt = new goog.i18n.NumberFormat('0.0000%');
   var str = fmt.format(123.45789179565757);
@@ -958,6 +979,26 @@ function testFractionDigits() {
   assertEquals('0.1230', fmt.format(0.123));
   assertEquals('0.123456', fmt.format(0.123456));
   assertEquals('0.123457', fmt.format(0.12345678));
+}
+
+function testFractionDigits_possibleLossOfPrecision() {
+  // See: https://github.com/google/closure-library/issues/916
+
+  // Given
+  var fracDigits = 12;
+  var mantissa = 1.1;
+  var magnitude = 15;
+  var value = parseFloat(mantissa + 'e' + magnitude);
+  var shiftedValue = parseFloat(mantissa + 'e' + (fracDigits + magnitude));
+
+  // Confirm that this case risks loss of precision.
+  assertNotEquals(shiftedValue / Math.pow(10, fracDigits), value);
+
+  var fmt = new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.DECIMAL);
+  fmt.setMaximumFractionDigits(fracDigits);
+
+  // When & Then
+  assertEquals('1,100,000,000,000,000', fmt.format(value));
 }
 
 function testFractionDigitsSetOutOfOrder() {
@@ -1004,6 +1045,12 @@ function testSignificantDigitsEqualToMax() {
   assertEquals('1.2', fmt.format(1.234));
   assertEquals('0.12', fmt.format(0.1234));
   assertEquals('0.13', fmt.format(0.1284));
+
+  // When number of significant digits plus max fraction digits is greater
+  // than the precision of numbers, rounding errors can occur.
+  fmt.setSignificantDigits(12);
+  fmt.setMaximumFractionDigits(12);
+  assertEquals('60,000', fmt.format(60000));
 }
 
 function testSignificantDigitsLessThanMax() {
@@ -1288,7 +1335,7 @@ function testCompactWithBaseFormattingFrench() {
       new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.COMPACT_SHORT);
   assertEquals('123\u00A0M', fmt.format(123400000));
   fmt.setBaseFormatting(1000);
-  assertEquals('123\u00A0400\u00A0k', fmt.format(123400000));
+  assertEquals('123\u202F400\u00A0k', fmt.format(123400000));
 }
 
 function testGetBaseFormattingNumber() {
@@ -1351,4 +1398,62 @@ function testVerySmallNumberDecimal() {
   assertEquals(expected, f.format(3.42e-90));
   expected = '0.' + goog.string.repeat('0', 8) + '3';
   assertEquals(expected, f.format(3.42e-9));
+}
+
+function testSymbols_percent() {
+  var f = new goog.i18n.NumberFormat(
+      goog.i18n.NumberFormat.Format.PERCENT, undefined, undefined,
+      // Alternate percent symbol.
+      Object.create(
+          goog.i18n.NumberFormatSymbols, {PERCENT: {'value': 'Percent'}}));
+  assertEquals('-25Percent', f.format(-0.25));
+  assertEquals('25Percent', f.format(0.25));
+
+  var f2 = new goog.i18n.NumberFormat(
+      goog.i18n.NumberFormat.Format.PERCENT, undefined, undefined,
+      goog.i18n.NumberFormatSymbols_en);
+  assertEquals('-25%', f2.format(-0.25));
+  assertEquals('25%', f2.format(0.25));
+  goog.i18n.NumberFormatSymbols = goog.i18n.NumberFormatSymbols_ar_EG;
+  assertEquals('-25Percent', f.format(-0.25));
+  assertEquals('25Percent', f.format(0.25));
+  assertEquals('-25%', f2.format(-0.25));
+  assertEquals('25%', f2.format(0.25));
+}
+
+function testSymbols_permill() {
+  var f = new goog.i18n.NumberFormat(
+      '#,##0\u2030', undefined, undefined,
+      Object.create(
+          goog.i18n.NumberFormatSymbols, {PERMILL: {'value': 'Permill'}}));
+  assertEquals('0Permill', f.format(0));
+
+  assertEquals('0\u2030', new goog.i18n.NumberFormat('#,##0\u2030').format(0));
+}
+
+function testSymbols_expSymbol() {
+  var f = new goog.i18n.NumberFormat(
+      goog.i18n.NumberFormat.Format.SCIENTIFIC, undefined, undefined,
+      goog.i18n.NumberFormatSymbols_en_AU);
+  assertEquals('1e3', f.format(1000));
+
+  var defaultLocale =
+      new goog.i18n.NumberFormat(goog.i18n.NumberFormat.Format.SCIENTIFIC);
+  assertEquals('1e3', f.format(1000));
+  assertEquals('1E3', defaultLocale.format(1000));
+
+  goog.i18n.NumberFormatSymbols = goog.i18n.NumberFormatSymbols_en_AU;
+  assertEquals('1e3', f.format(1000));
+  assertEquals('1e3', defaultLocale.format(1000));
+
+  goog.i18n.NumberFormatSymbols = goog.i18n.NumberFormatSymbols_en_US;
+  assertEquals('1e3', f.format(1000));
+  assertEquals('1E3', defaultLocale.format(1000));
+}
+
+function testScientific_ar_rtl() {
+  var scientific = new goog.i18n.NumberFormat(
+      goog.i18n.NumberFormat.Format.SCIENTIFIC, undefined, undefined,
+      goog.i18n.NumberFormatSymbols_ar_EG);
+  assertEquals('١اس3', scientific.format(1000));
 }

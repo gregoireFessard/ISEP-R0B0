@@ -382,6 +382,10 @@ testAgents.CHROME_OS_910 =
     'Mozilla/5.0 (X11; U; CrOS i686 9.10.0; en-US) AppleWebKit/532.5' +
     ' (KHTML, like Gecko) Chrome/4.0.253.0 Safari/532.5';
 
+/** @const {string} */
+testAgents.CHROMECAST =
+    'Mozilla/5.0 (CrKey armv7l 1.5.16041) AppleWebKit/537.36' +
+    ' (KHTML, like Gecko) Chrome/31.0.1650.0 Safari/537.36';
 
 /** @const {string} */
 testAgents.KINDLE_FIRE =
@@ -393,5 +397,10 @@ testAgents.KINDLE_FIRE =
 /** @const {string} */
 testAgents.FIREFOX_ANDROID_TABLET =
     'Mozilla/5.0 (Android; Tablet; rv:28.0) Gecko/28.0 Firefox/28.0';
+
+/** @const {string} */
+testAgents.KAIOS =
+    'Mozilla/5.0 (Mobile; LYF/LF-2403N/LYF-LF2403N-000-01-18-270717; rv:48.0)' +
+    ' Gecko/48.0 Firefox/48.0 KaiOS/2.0';
 
 });  // goog.scope

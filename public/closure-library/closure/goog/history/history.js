@@ -176,7 +176,7 @@ goog.require('goog.history.Event');
 goog.require('goog.history.EventType');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.TrustedResourceUrl');
-goog.require('goog.html.legacyconversions');
+goog.require('goog.html.uncheckedconversions');
 goog.require('goog.labs.userAgent.device');
 goog.require('goog.memoize');
 goog.require('goog.string');
@@ -583,7 +583,7 @@ goog.History.prototype.onShow_ = function(e) {
  * Handles HTML5 onhashchange events on browsers where it is supported.
  * This is very similar to {@link #check_}, except that it is not executed
  * continuously. It is only used when
- * {@code goog.History.isOnHashChangeSupported()} is true.
+ * `goog.History.isOnHashChangeSupported()` is true.
  * @param {goog.events.BrowserEvent} e The browser event.
  * @private
  */
@@ -737,7 +737,11 @@ goog.History.prototype.setHash_ = function(token, opt_replace) {
       loc.replace(url);
     } else {
       goog.dom.safe.setLocationHref(
-          loc, goog.html.legacyconversions.safeUrlFromString(url));
+          loc,
+          goog.html.uncheckedconversions
+              .safeUrlFromStringKnownToSatisfyTypeContract(
+                  goog.string.Const.from('URL taken from location.href.'),
+                  url));
     }
   }
 };
@@ -860,8 +864,8 @@ goog.History.prototype.getIframeToken_ = function() {
 
 /**
  * Checks the state of the document fragment and the iframe title to detect
- * navigation changes. If {@code goog.HistoryisOnHashChangeSupported()} is
- * {@code false}, then this runs approximately twenty times per second.
+ * navigation changes. If `goog.HistoryisOnHashChangeSupported()` is
+ * `false`, then this runs approximately twenty times per second.
  * @param {boolean} isNavigation True if the event was initiated by a browser
  *     action, false if it was caused by a setToken call. See
  *     {@link goog.history.Event}.

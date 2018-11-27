@@ -24,6 +24,7 @@ goog.setTestOnly('goog.baseTest');
 goog.require('goog.Promise');
 // Used to test dynamic loading works, see testRequire*
 goog.require('goog.Timer');
+goog.require('goog.Uri');
 goog.require('goog.dom');
 goog.require('goog.dom.TagName');
 goog.require('goog.object');
@@ -1135,27 +1136,6 @@ function testGetCssName_nameMapFn() {
   assertEquals('classname!', goog.getCssName('classname'));
 }
 
-function testAddDependency() {
-  stubs.set(goog, 'writeScriptTag_', goog.nullFunction);
-
-  goog.addDependency('foo.js', ['testDep.foo'], ['testDep.bar']);
-
-  // alias to avoid the being picked up by the deps scanner.
-  var provide = goog.provide;
-
-  provide('testDep.bar');
-
-  // To differentiate this call from the real one.
-  var require = goog.require;
-
-  // this used to throw an exception
-  require('testDep.foo');
-
-  assertTrue(goog.isObject(testDep.bar));
-
-  // Unset provided namespace so the test can be re-run.
-  testDep = undefined;
-}
 
 function testBaseMethod() {
   function A() {}
@@ -1696,4 +1676,39 @@ function testGoogModuleNames() {
   assertValidId('$');
   assertValidId('_$');
   assertValidId('$_');
+}
+
+
+function testGetScriptNonce() {
+  // clear nonce cache for test.
+  goog.cspNonce_ = null;
+  var nonce = 'ThisIsANonceThisIsANonceThisIsANonce';
+  var script = goog.dom.createElement(goog.dom.TagName.SCRIPT);
+  script.setAttribute('nonce', 'invalid nonce');
+  document.body.appendChild(script);
+
+  try {
+    assertEquals('', goog.getScriptNonce());
+    // clear nonce cache for test.
+    goog.cspNonce_ = null;
+    script.nonce = nonce;
+    assertEquals(nonce, goog.getScriptNonce());
+  } finally {
+    goog.dom.removeNode(script);
+  }
+}
+
+function testGoogRequireTypeDestructuring() {
+  try {
+    eval('const {es6} = {es6: 1}');
+  } catch (e) {
+    // If ES6 destructuring syntax isn't supported, skip the test.
+    return;
+  }
+
+  assertNotThrows(function() {
+    goog.loadModule(
+        'goog.module(\'requiretype.destructuring\');' +
+        'const {type} = goog.requireType(\'module.with.types\');');
+  });
 }

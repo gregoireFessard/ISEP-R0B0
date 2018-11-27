@@ -38,6 +38,7 @@ goog.require('goog.events.BrowserEvent');
 goog.require('goog.events.EventType');
 goog.require('goog.events.KeyCodes');
 goog.require('goog.functions');
+goog.require('goog.html.SafeHtml');
 goog.require('goog.testing.LooseMock');
 goog.require('goog.testing.MockClock');
 goog.require('goog.testing.dom');
@@ -181,7 +182,7 @@ function testGetPluginByClassId() {
   var editableField = new FieldConstructor('testField');
   var plugin = new TestPlugin();
 
-  assertUndefined(
+  assertNull(
       'Must not be able to get unregistered plugins by class id.',
       editableField.getPluginByClassId(plugin.getTrogClassId()));
 
@@ -611,6 +612,39 @@ function testKeyHandlingAlt() {
   } else {
     mockPlugin.handleKeyPress(e).$returns(false);
   }
+  mockPlugin.$replay();
+
+  editableField.registerPlugin(mockPlugin);
+
+  if (goog.editor.BrowserFeature.USES_KEYDOWN) {
+    editableField.handleKeyDown_(e);
+  } else {
+    editableField.handleKeyPress_(e);
+  }
+
+  mockPlugin.$verify();
+}
+
+/**
+ * Make sure that handleKeyboardShortcut is called if alt+shift is pressed.
+ */
+function testKeyHandlingAltShift() {
+  var editableField = new FieldConstructor('testField');
+  var plugin = new TestPlugin();
+  var e = getBrowserEvent();
+  e.altKey = true;
+  e.shiftKey = true;
+
+  var mockPlugin = new goog.testing.LooseMock(plugin);
+  mockPlugin.getTrogClassId().$returns('mockPlugin');
+  mockPlugin.registerFieldObject(editableField);
+  mockPlugin.isEnabled(editableField).$anyTimes().$returns(true);
+  if (goog.editor.BrowserFeature.USES_KEYDOWN) {
+    mockPlugin.handleKeyDown(e).$returns(false);
+  } else {
+    mockPlugin.handleKeyPress(e).$returns(false);
+  }
+  mockPlugin.handleKeyboardShortcut(e, STRING_KEY, true).$returns(false);
   mockPlugin.$replay();
 
   editableField.registerPlugin(mockPlugin);
@@ -1056,7 +1090,7 @@ function focusFieldSync(field) {
 }
 
 
-function testSetHtml() {
+function testSetSafeHtml() {
   var editableField = new FieldConstructor('testField', document);
   var clock = new goog.testing.MockClock(true);
 
@@ -1071,18 +1105,22 @@ function testSetHtml() {
     assertFalse(
         'Make editable must not fire delayed change.', delayedChangeCalled);
 
-    editableField.setHtml(false, 'bar', true /* Don't fire delayed change */);
+    editableField.setSafeHtml(
+        false, goog.html.SafeHtml.htmlEscape('bar'),
+        true /* Don't fire delayed change */);
     goog.testing.dom.assertHtmlContentsMatch('bar', editableField.getElement());
     clock.tick(1000);
     assertFalse(
-        'setHtml must not fire delayed change if so configured.',
+        'setSafeHtml must not fire delayed change if so configured.',
         delayedChangeCalled);
 
-    editableField.setHtml(false, 'foo', false /* Fire delayed change */);
+    editableField.setSafeHtml(
+        false, goog.html.SafeHtml.htmlEscape('foo'),
+        false /* Fire delayed change */);
     goog.testing.dom.assertHtmlContentsMatch('foo', editableField.getElement());
     clock.tick(1000);
     assertTrue(
-        'setHtml must fire delayed change by default', delayedChangeCalled);
+        'setSafeHtml must fire delayed change by default', delayedChangeCalled);
   } finally {
     clock.dispose();
     editableField.dispose();

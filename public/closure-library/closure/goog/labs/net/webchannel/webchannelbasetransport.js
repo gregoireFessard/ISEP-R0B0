@@ -150,6 +150,18 @@ WebChannelBaseTransport.Channel = function(url, opt_options) {
     }
   }
 
+  if (opt_options && opt_options.clientProfile) {
+    if (initHeaders) {
+      goog.object.set(
+          initHeaders, goog.net.WebChannel.X_WEBCHANNEL_CLIENT_PROFILE,
+          opt_options.clientProfile);
+    } else {
+      initHeaders = goog.object.create(
+          goog.net.WebChannel.X_WEBCHANNEL_CLIENT_PROFILE,
+          opt_options.clientProfile);
+    }
+  }
+
   this.channel_.setInitHeaders(initHeaders);
 
   var httpHeadersOverwriteParam =
@@ -241,6 +253,15 @@ WebChannelBaseTransport.Channel.prototype.close = function() {
 
 
 /**
+ * @override
+ */
+WebChannelBaseTransport.Channel.prototype.halfClose = function() {
+  // to be implemented
+  throw new Error('Not implemented');
+};
+
+
+/**
  * The WebChannelBase only supports object types.
  *
  * @param {!goog.net.WebChannel.MessageData} message The message to send.
@@ -283,7 +304,7 @@ WebChannelBaseTransport.Channel.prototype.disposeInternal = function() {
 /**
  * The message event.
  *
- * @param {!Array<?>} array The data array from the underlying channel.
+ * @param {!Array<?>|!Object} array The data array from the underlying channel.
  * @constructor
  * @extends {goog.net.WebChannel.MessageEvent}
  * @final
@@ -291,7 +312,18 @@ WebChannelBaseTransport.Channel.prototype.disposeInternal = function() {
 WebChannelBaseTransport.Channel.MessageEvent = function(array) {
   WebChannelBaseTransport.Channel.MessageEvent.base(this, 'constructor');
 
-  this.data = array;
+  // single-metadata only
+  var metadata = array['__sm__'];
+  if (metadata) {
+    this.metadataKey = goog.object.getAnyKey(metadata);
+    if (this.metadataKey) {
+      this.data = goog.object.get(metadata, this.metadataKey);
+    } else {
+      this.data = metadata;  // empty
+    }
+  } else {
+    this.data = array;
+  }
 };
 goog.inherits(
     WebChannelBaseTransport.Channel.MessageEvent,

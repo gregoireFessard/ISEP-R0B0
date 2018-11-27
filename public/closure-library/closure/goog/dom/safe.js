@@ -42,6 +42,7 @@ goog.provide('goog.dom.safe.InsertAdjacentHtmlPosition');
 
 goog.require('goog.asserts');
 goog.require('goog.dom.asserts');
+goog.require('goog.functions');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeScript');
 goog.require('goog.html.SafeStyle');
@@ -86,6 +87,59 @@ goog.dom.safe.SET_INNER_HTML_DISALLOWED_TAGS_ = {
 
 
 /**
+ * Whether assigning to innerHTML results in a non-spec-compliant clean-up. Used
+ * to define goog.dom.safe.unsafeSetInnerHtmlDoNotUseOrElse.
+ *
+ * <p>As mentioned in https://stackoverflow.com/questions/28741528, re-rendering
+ * an element in IE by setting innerHTML causes IE to recursively disconnect all
+ * parent/children connections that were in the previous contents of the
+ * element. Unfortunately, this can unexpectedly result in confusing cases where
+ * a function is run (typically asynchronously) on element that has since
+ * disconnected from the DOM but assumes the presence of its children. A simple
+ * workaround is to remove all children first. Testing on IE11 via
+ * https://jsperf.com/innerhtml-vs-removechild/239, removeChild seems to be
+ * ~10x faster than innerHTML='' for a large number of children (perhaps due
+ * to the latter's recursive behavior), implying that this workaround would
+ * not hurt performance and might actually improve it.
+ * @return {boolean}
+ * @private
+ */
+goog.dom.safe.isInnerHtmlCleanupRecursive_ =
+    goog.functions.cacheReturnValue(function() {
+      // `document` missing in some test frameworks.
+      if (goog.DEBUG && typeof document === 'undefined') {
+        return false;
+      }
+      var div = document.createElement('div');
+      div.innerHTML = '<div><div></div></div>';
+      // `firstChild` is null in Google Js Test.
+      if (goog.DEBUG && !div.firstChild) {
+        return false;
+      }
+      var innerChild = div.firstChild.firstChild;
+      div.innerHTML = '';
+      return !innerChild.parentElement;
+    });
+
+
+/**
+ * Assigns HTML to an element's innerHTML property. Helper to use only here and
+ * in soy.js.
+ * @param {?Element} elem The element whose innerHTML is to be assigned to.
+ * @param {string} html
+ */
+goog.dom.safe.unsafeSetInnerHtmlDoNotUseOrElse = function(elem, html) {
+  // See comment above goog.dom.safe.isInnerHtmlCleanupRecursive_.
+  if (goog.dom.safe.isInnerHtmlCleanupRecursive_()) {
+    while (elem.lastChild) {
+      elem.removeChild(elem.lastChild);
+    }
+  }
+  elem.innerHTML = html;
+};
+
+
+/**
  * Assigns known-safe HTML to an element's innerHTML property.
  * @param {!Element} elem The element whose innerHTML is to be assigned to.
  * @param {!goog.html.SafeHtml} html The known-safe HTML to assign.
@@ -101,7 +155,9 @@ goog.dom.safe.setInnerHtml = function(elem, html) {
           elem.tagName + '.');
     }
   }
-  elem.innerHTML = goog.html.SafeHtml.unwrap(html);
+
+  goog.dom.safe.unsafeSetInnerHtmlDoNotUseOrElse(
+      elem, goog.html.SafeHtml.unwrap(html));
 };
 
 
@@ -173,7 +229,7 @@ goog.dom.safe.setButtonFormAction = function(button, url) {
   } else {
     safeUrl = goog.html.SafeUrl.sanitizeAssertUnchanged(url);
   }
-  goog.dom.asserts.assertIsHTMLButtonElement(button).formaction =
+  goog.dom.asserts.assertIsHTMLButtonElement(button).formAction =
       goog.html.SafeUrl.unwrap(safeUrl);
 };
 /**
@@ -203,7 +259,7 @@ goog.dom.safe.setInputFormAction = function(input, url) {
   } else {
     safeUrl = goog.html.SafeUrl.sanitizeAssertUnchanged(url);
   }
-  goog.dom.asserts.assertIsHTMLInputElement(input).formaction =
+  goog.dom.asserts.assertIsHTMLInputElement(input).formAction =
       goog.html.SafeUrl.unwrap(safeUrl);
 };
 
@@ -284,6 +340,53 @@ goog.dom.safe.setImageSrc = function(imageElement, url) {
   imageElement.src = goog.html.SafeUrl.unwrap(safeUrl);
 };
 
+/**
+ * Safely assigns a URL to a audio element's src property.
+ *
+ * If url is of type goog.html.SafeUrl, its value is unwrapped and assigned to
+ * audio's src property.  If url is of type string however, it is first
+ * sanitized using goog.html.SafeUrl.sanitize.
+ *
+ * @param {!HTMLAudioElement} audioElement The audio element whose src property
+ *     is to be assigned to.
+ * @param {string|!goog.html.SafeUrl} url The URL to assign.
+ * @see goog.html.SafeUrl#sanitize
+ */
+goog.dom.safe.setAudioSrc = function(audioElement, url) {
+  goog.dom.asserts.assertIsHTMLAudioElement(audioElement);
+  /** @type {!goog.html.SafeUrl} */
+  var safeUrl;
+  if (url instanceof goog.html.SafeUrl) {
+    safeUrl = url;
+  } else {
+    safeUrl = goog.html.SafeUrl.sanitizeAssertUnchanged(url);
+  }
+  audioElement.src = goog.html.SafeUrl.unwrap(safeUrl);
+};
+
+/**
+ * Safely assigns a URL to a video element's src property.
+ *
+ * If url is of type goog.html.SafeUrl, its value is unwrapped and assigned to
+ * video's src property.  If url is of type string however, it is first
+ * sanitized using goog.html.SafeUrl.sanitize.
+ *
+ * @param {!HTMLVideoElement} videoElement The video element whose src property
+ *     is to be assigned to.
+ * @param {string|!goog.html.SafeUrl} url The URL to assign.
+ * @see goog.html.SafeUrl#sanitize
+ */
+goog.dom.safe.setVideoSrc = function(videoElement, url) {
+  goog.dom.asserts.assertIsHTMLVideoElement(videoElement);
+  /** @type {!goog.html.SafeUrl} */
+  var safeUrl;
+  if (url instanceof goog.html.SafeUrl) {
+    safeUrl = url;
+  } else {
+    safeUrl = goog.html.SafeUrl.sanitizeAssertUnchanged(url);
+  }
+  videoElement.src = goog.html.SafeUrl.unwrap(safeUrl);
+};
 
 /**
  * Safely assigns a URL to an embed element's src property.
@@ -446,6 +549,13 @@ goog.dom.safe.setObjectData = function(object, url) {
 goog.dom.safe.setScriptSrc = function(script, url) {
   goog.dom.asserts.assertIsHTMLScriptElement(script);
   script.src = goog.html.TrustedResourceUrl.unwrap(url);
+
+  // If CSP nonces are used, propagate them to dynamically created scripts.
+  // This is necessary to allow nonce-based CSPs without 'strict-dynamic'.
+  var nonce = goog.getScriptNonce();
+  if (nonce) {
+    script.setAttribute('nonce', nonce);
+  }
 };
 
 
@@ -466,6 +576,13 @@ goog.dom.safe.setScriptSrc = function(script, url) {
 goog.dom.safe.setScriptContent = function(script, content) {
   goog.dom.asserts.assertIsHTMLScriptElement(script);
   script.text = goog.html.SafeScript.unwrap(content);
+
+  // If CSP nonces are used, propagate them to dynamically created scripts.
+  // This is necessary to allow nonce-based CSPs without 'strict-dynamic'.
+  var nonce = goog.getScriptNonce();
+  if (nonce) {
+    script.setAttribute('nonce', nonce);
+  }
 };
 
 
@@ -500,6 +617,39 @@ goog.dom.safe.setLocationHref = function(loc, url) {
   loc.href = goog.html.SafeUrl.unwrap(safeUrl);
 };
 
+/**
+ * Safely assigns the URL of a Location object.
+ *
+ * If url is of type goog.html.SafeUrl, its value is unwrapped and
+ * passed to Location#assign. If url is of type string however, it is
+ * first sanitized using goog.html.SafeUrl.sanitize.
+ *
+ * Example usage:
+ *   goog.dom.safe.assignHref(document.location, newUrl);
+ * which is a safe alternative to
+ *   document.location.assign(newUrl);
+ * The latter can result in XSS vulnerabilities if newUrl is a
+ * user-/attacker-controlled value.
+ *
+ * This has the same behaviour as setLocationHref, however some test
+ * mock Location.assign instead of a property assignment.
+ *
+ * @param {!Location} loc The Location object which is to be assigned.
+ * @param {string|!goog.html.SafeUrl} url The URL to assign.
+ * @see goog.html.SafeUrl#sanitize
+ */
+goog.dom.safe.assignLocation = function(loc, url) {
+  goog.dom.asserts.assertIsLocation(loc);
+  /** @type {!goog.html.SafeUrl} */
+  var safeUrl;
+  if (url instanceof goog.html.SafeUrl) {
+    safeUrl = url;
+  } else {
+    safeUrl = goog.html.SafeUrl.sanitizeAssertUnchanged(url);
+  }
+  loc.assign(goog.html.SafeUrl.unwrap(safeUrl));
+};
+
 
 /**
  * Safely replaces the URL of a Location object.
@@ -509,7 +659,7 @@ goog.dom.safe.setLocationHref = function(loc, url) {
  * first sanitized using goog.html.SafeUrl.sanitize.
  *
  * Example usage:
- *   goog.dom.safe.replaceHref(document.location, newUrl);
+ *   goog.dom.safe.replaceLocation(document.location, newUrl);
  * which is a safe alternative to
  *   document.location.replace(newUrl);
  * The latter can result in XSS vulnerabilities if newUrl is a

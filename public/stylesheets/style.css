@@ -25,6 +25,18 @@ a {
     margin-left: 2%;
 }
 
+th{
+	width: 20%;
+	color: white;
+	background-color: white;
+}
+
+tr{
+	width:100px;
+	height:20px;
+	
+}
+
 a:link
 {
     text-decoration:none;
